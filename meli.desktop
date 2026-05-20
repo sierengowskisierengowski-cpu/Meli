@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Meli
+GenericName=Honeypot Command Center
+Comment=Real-time threat intelligence dashboard for honeypot infrastructure
+Exec=meli
+Icon=meli
+Terminal=false
+Categories=Network;Security;Monitor;
+Keywords=honeypot;security;threat;intelligence;monitor;attack;
+StartupNotify=true
+StartupWMClass=meli

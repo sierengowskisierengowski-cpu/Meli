@@ -1,0 +1,55 @@
+# Meli — Python dependencies
+# Install via: pip install -r requirements.txt
+# (install.sh handles this automatically inside the venv)
+
+# GTK4 Python bindings — installed from system packages, not pip
+# PyGObject is listed here for documentation; the install.sh uses system packages
+# PyGObject>=3.46.0  # Use system: python3-gi / python3-gobject
+
+# MQTT
+paho-mqtt>=2.0.0
+
+# HTTP
+requests>=2.31.0
+aiohttp>=3.9.0
+httpx>=0.27.0
+
+# Database
+SQLAlchemy>=2.0.0
+alembic>=1.13.0
+
+# Auth & crypto
+bcrypt>=4.1.0
+cryptography>=42.0.0
+pyotp>=2.9.0
+argon2-cffi>=23.1.0
+
+# Geolocation
+geoip2>=4.8.0
+maxminddb>=2.5.0
+
+# Reports
+reportlab>=4.1.0
+Markdown>=3.5.0
+Jinja2>=3.1.0
+Pillow>=10.2.0
+
+# System monitoring
+psutil>=5.9.0
+watchdog>=4.0.0
+
+# CLI
+click>=8.1.0
+
+# Logging
+structlog>=24.1.0
+
+# Config
+PyYAML>=6.0.1
+
+# Real-time
+websockets>=12.0
+
+# Utilities
+python-dateutil>=2.9.0
+packaging>=24.0
