@@ -1,0 +1,176 @@
+# Meli default severity classification rules
+# Rules are evaluated in priority order (lower number = higher priority).
+# The highest matching severity wins.
+# Conditions use AND logic within a rule; multiple rules use OR (highest wins).
+
+rules:
+  # ── CRITICAL ──────────────────────────────────────────────────────────────
+  - name: "Malware payload captured"
+    description: "A binary file or payload was captured from an attacker"
+    severity: CRITICAL
+    priority: 10
+    conditions:
+      - field: action_type
+        operator: in
+        value: ["file_upload", "file_download"]
+      - field: payload_hash
+        operator: exists
+
+  - name: "Confirmed successful authentication"
+    description: "Attacker successfully authenticated to honeypot"
+    severity: CRITICAL
+    priority: 11
+    conditions:
+      - field: action_type
+        operator: eq
+        value: "successful_auth"
+
+  - name: "Post-auth RCE commands - download + execute"
+    description: "Attacker ran commands typical of RCE exploitation"
+    severity: CRITICAL
+    priority: 12
+    conditions:
+      - field: command
+        operator: regex
+        value: "(wget|curl|python|perl|ruby|php|nc|ncat|bash|sh|chmod \\+x|base64 -d|/tmp/)"
+
+  - name: "Persistence mechanism"
+    description: "Attacker attempted to install persistence"
+    severity: CRITICAL
+    priority: 13
+    conditions:
+      - field: command
+        operator: regex
+        value: "(crontab|/etc/rc\\.local|/etc/init\\.d|systemctl enable|authorized_keys|ssh-keygen|useradd|usermod)"
+
+  - name: "Crypto miner indicators"
+    description: "Commands associated with cryptocurrency mining"
+    severity: CRITICAL
+    priority: 14
+    conditions:
+      - field: command
+        operator: regex
+        value: "(xmrig|minerd|cpuminer|ethminer|stratum\\+tcp|pool\\.minexmr|moneropool)"
+
+  # ── HIGH ──────────────────────────────────────────────────────────────────
+  - name: "Post-auth command execution"
+    description: "Attacker executed commands after auth"
+    severity: HIGH
+    priority: 20
+    conditions:
+      - field: action_type
+        operator: eq
+        value: "command"
+
+  - name: "Privilege escalation attempt"
+    description: "Commands suggesting privilege escalation"
+    severity: HIGH
+    priority: 21
+    conditions:
+      - field: command
+        operator: regex
+        value: "(sudo|su -|passwd root|/etc/passwd|/etc/shadow|whoami|id;|uid=0)"
+
+  - name: "Data exfiltration indicators"
+    description: "Commands suggesting data theft"
+    severity: HIGH
+    priority: 22
+    conditions:
+      - field: command
+        operator: regex
+        value: "(cat /etc/passwd|cat /etc/shadow|tar czf|scp |rsync -|dd if=)"
+
+  # ── MEDIUM ────────────────────────────────────────────────────────────────
+  - name: "Brute force - sustained credential attacks"
+    description: "High-volume login attempts from same IP (counted by classifier)"
+    severity: MEDIUM
+    priority: 30
+    conditions:
+      - field: action_type
+        operator: eq
+        value: "login_attempt"
+      - field: attacker_event_count
+        operator: gte
+        value: 20
+
+  - name: "Multi-service probe"
+    description: "Same IP probing multiple honeypot services"
+    severity: MEDIUM
+    priority: 31
+    conditions:
+      - field: attacker_service_count
+        operator: gte
+        value: 2
+
+  - name: "Known dictionary credential"
+    description: "Using a well-known default or dictionary credential"
+    severity: MEDIUM
+    priority: 32
+    conditions:
+      - field: username
+        operator: in
+        value: ["root", "admin", "administrator", "ubuntu", "pi", "oracle", "postgres",
+                "user", "test", "guest", "deploy", "ansible", "vagrant", "ec2-user",
+                "centos", "core", "hadoop", "git", "jenkins", "gitlab"]
+
+  - name: "Port forwarding / lateral movement"
+    description: "Attacker attempted TCP port forwarding"
+    severity: MEDIUM
+    priority: 33
+    conditions:
+      - field: action_type
+        operator: eq
+        value: "port_forward"
+
+  # ── LOW ───────────────────────────────────────────────────────────────────
+  - name: "Repeated login attempts"
+    description: "More than 5 failed logins from same IP"
+    severity: LOW
+    priority: 40
+    conditions:
+      - field: action_type
+        operator: eq
+        value: "login_attempt"
+      - field: attacker_event_count
+        operator: gte
+        value: 5
+
+  - name: "SMTP probe"
+    description: "SMTP probing activity"
+    severity: LOW
+    priority: 41
+    conditions:
+      - field: honeypot_service
+        operator: eq
+        value: "mailoney"
+
+  - name: "Web reconnaissance"
+    description: "HTTP probing for vulnerable paths"
+    severity: LOW
+    priority: 42
+    conditions:
+      - field: action_type
+        operator: eq
+        value: "web_request"
+      - field: command
+        operator: regex
+        value: "(\\.php|wp-admin|/admin|/manager|/console|/actuator|/api/swagger|\\.git/config)"
+
+  # ── INFO ──────────────────────────────────────────────────────────────────
+  - name: "Single connection / scan"
+    description: "Single connection or banner grab"
+    severity: INFO
+    priority: 50
+    conditions:
+      - field: action_type
+        operator: in
+        value: ["connection", "session_close", "unknown"]
+
+  - name: "Generic login attempt"
+    description: "Single login attempt"
+    severity: INFO
+    priority: 51
+    conditions:
+      - field: action_type
+        operator: eq
+        value: "login_attempt"
