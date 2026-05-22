@@ -2,6 +2,48 @@
 
 All notable changes to Meli are documented here.
 
+## [2.6.1] — 2026-05-22
+
+### Fixed — install.sh was silently loading the wrong code
+
+Root cause of the v2.6.0 "stale copy" bug: the launcher
+`/usr/local/bin/meli` was written as:
+
+```sh
+exec /opt/meli/venv/bin/python -m meli "$@"
+```
+
+with no `PYTHONPATH` and no `cd`. `python -m meli` therefore searched
+`sys.path`, which on a fresh venv with `--system-site-packages` does
+NOT contain `/opt/meli/app` — but it DOES contain the current working
+directory. If the user ran `meli` from `~/meli-fresh` (which has a
+`meli/` subdir), Python loaded the source tree instead of the
+installed copy at `/opt/meli/app/meli`. The rsync to `/opt/meli/app`
+was effectively dead code.
+
+Combined with stale `__pycache__/*.pyc` files in the source tree,
+this meant code edits could appear to "not take" even after
+`git pull && sudo ./install.sh`.
+
+Fixes in `install.sh`:
+
+- **Launcher now pins `PYTHONPATH=/opt/meli/app`** so `meli` loads
+  the installed package from any cwd, never from a sibling `meli/`
+  directory.
+- **Phase 4 wipes `__pycache__` and `*.pyc`** from both the source
+  tree (`$APP_DIR`) and the install dir (`/opt/meli/app`) before
+  copying, so yesterday's bytecode can't shadow today's source.
+- **Phase 4 removes `/opt/meli/app/meli/` outright** before rsync so
+  files deleted in a new release don't linger as zombies.
+- **Phase 4 prints the installed `__version__`** from
+  `/opt/meli/app/meli/__init__.py` so you can confirm at a glance
+  which release actually landed.
+- `MELI_VERSION` banner string updated to track the real release
+  (was hardcoded at `1.0.0` since the original install.sh).
+
+No code changes to the splash or lock screen — the v2.6.0 visuals
+were already correct, they just weren't being loaded.
+
 ## [2.6.0] — 2026-05-22
 
 ### Changed — Splash screen v2: real gooey vertical drips

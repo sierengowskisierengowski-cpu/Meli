@@ -6,7 +6,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
-MELI_VERSION="1.0.0"
+MELI_VERSION="2.6.1"
 INSTALL_DIR="/opt/meli"
 BIN_LINK="/usr/local/bin/meli"
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -37,7 +37,7 @@ cat << 'EOF'
   ██║╚██╔╝██║██╔══╝  ██║     ██║
   ██║ ╚═╝ ██║███████╗███████╗██║
   ╚═╝     ╚═╝╚══════╝╚══════╝╚═╝
-  Honeypot Command Center v1.0.0
+  Honeypot Command Center v2.6.1
   Author: Joseph Sierengowski
 
 EOF
@@ -173,18 +173,50 @@ install_python_deps() {
 # ── Phase 4: Application files ────────────────────────────────────────────────
 install_app_files() {
     log "Phase 4: Copying application files to $INSTALL_DIR..."
-    rsync -a --exclude=".git" --exclude="__pycache__" --exclude="*.pyc" \
+
+    # 4a. Nuke stale bytecode in BOTH the source tree and the install dir
+    # so Python can't load yesterday's .pyc on top of today's .py.
+    log "Scrubbing stale __pycache__ from source tree and install dir..."
+    find "$APP_DIR" -type d -name "__pycache__" -prune -exec rm -rf {} + 2>/dev/null || true
+    find "$APP_DIR" -type f -name "*.pyc"        -delete           2>/dev/null || true
+    if [ -d "$INSTALL_DIR/app" ]; then
+        sudo find "$INSTALL_DIR/app" -type d -name "__pycache__" -prune -exec rm -rf {} + 2>/dev/null || true
+        sudo find "$INSTALL_DIR/app" -type f -name "*.pyc"        -delete           2>/dev/null || true
+        # 4b. Remove the previous meli package outright so deleted files
+        # in v2.6.x don't leave zombies behind from an older install.
+        sudo rm -rf "$INSTALL_DIR/app/meli"
+    fi
+
+    # 4c. Copy fresh source.
+    rsync -a --delete-after \
+        --exclude=".git" --exclude="__pycache__" --exclude="*.pyc" \
         --exclude=".venv" --exclude="venv" --exclude="dist" --exclude="build" \
         "$APP_DIR/" "$INSTALL_DIR/app/"
     ok "Application files copied."
 
+    # 4d. Report what version actually landed in /opt/meli/app so we can't
+    # silently install the wrong tree (this was the v2.6.0 stale-copy bug:
+    # the launcher loaded from cwd, never from $INSTALL_DIR/app).
+    local installed_version
+    installed_version=$(grep -oP '^__version__ = "\K[^"]+' "$INSTALL_DIR/app/meli/__init__.py" 2>/dev/null || echo "unknown")
+    ok "Installed package version: ${installed_version}"
+
     log "Creating launcher script..."
+    # IMPORTANT: pin PYTHONPATH to the install dir so `meli` always loads
+    # from /opt/meli/app regardless of where the user runs the command
+    # from. The previous launcher relied on cwd to contain a meli/
+    # subdirectory, which silently loaded the source tree instead of the
+    # installed copy — pulling stale (or just plain wrong) code.
     sudo tee "$BIN_LINK" > /dev/null << EOF
 #!/usr/bin/env bash
-exec "$VENV/bin/python" -m meli "\$@"
+# Meli launcher — installed by install.sh (v${MELI_VERSION})
+# Pin PYTHONPATH so this command works from ANY directory and always
+# loads from the installed tree, not from whatever happens to be in cwd.
+exec env PYTHONPATH="$INSTALL_DIR/app\${PYTHONPATH:+:\$PYTHONPATH}" \\
+    "$VENV/bin/python" -m meli "\$@"
 EOF
     sudo chmod +x "$BIN_LINK"
-    ok "Launcher created at $BIN_LINK."
+    ok "Launcher created at $BIN_LINK (PYTHONPATH-pinned to $INSTALL_DIR/app)."
 }
 
 # ── Phase 5: Desktop integration ─────────────────────────────────────────────
