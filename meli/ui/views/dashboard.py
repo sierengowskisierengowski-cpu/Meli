@@ -1,4 +1,5 @@
-"""Dashboard view — home screen with stat cards, live feed, and charts."""
+"""Dashboard view — home screen with the centerpiece honey pot, stat
+cards, live feed, and charts."""
 from __future__ import annotations
 
 import gi
@@ -12,6 +13,9 @@ import structlog
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, select, and_
 
+from meli import event_bus
+from meli.ui.widgets import HoneyPotWidget
+
 log = structlog.get_logger()
 
 
@@ -19,9 +23,82 @@ class DashboardView(Gtk.Box):
     def __init__(self) -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
         self._refresh_id: int | None = None
+        self._honey_pot: HoneyPotWidget | None = None
         self._build_ui()
         self.refresh()
         self._start_auto_refresh()
+        # Live-pulse the pot whenever the ingest pipeline reports a new event.
+        # Handler is called on the publisher's thread (often the MQTT thread),
+        # so we re-dispatch onto the GTK main loop.
+        event_bus.subscribe("event.ingested", self._on_ingest_signal)
+        self.connect("destroy", self._on_destroy)
+
+    def _on_ingest_signal(self, topic: str, payload: dict) -> None:
+        sev = (payload or {}).get("severity", "INFO")
+        if self._honey_pot is not None:
+            GLib.idle_add(self._honey_pot.pulse, sev)
+
+    def _on_destroy(self, *_):
+        event_bus.unsubscribe("event.ingested", self._on_ingest_signal)
+        if self._refresh_id is not None:
+            try:
+                GLib.source_remove(self._refresh_id)
+            except Exception:
+                pass
+            self._refresh_id = None
+
+    # ── v2.1: on-demand digest ─────────────────────────────────────────
+
+    def _build_digest_now(self) -> None:
+        """Spawn a worker thread that runs digest.write(); then show a
+        result dialog with the output path so the operator can open it
+        in their editor of choice. Disables the button while in-flight
+        so rapid double-clicks don't queue multiple builds."""
+        try:
+            sender = getattr(self, "_digest_btn_cache", None)
+            if sender is not None and not sender.get_sensitive():
+                return
+        except Exception:
+            pass
+
+        def _worker():
+            err = None
+            out_path = None
+            try:
+                from meli.labyrinth import digest
+                from pathlib import Path
+                out_path = digest.write(digest.default_path(), hours=24)
+                out_path = Path(str(out_path))
+                log.info("digest built on demand", path=str(out_path))
+            except Exception as e:
+                err = str(e)
+                log.warning("digest build failed", error=err)
+            GLib.idle_add(self._show_digest_result, out_path, err)
+
+        threading.Thread(target=_worker, name="meli-digest-ondemand",
+                         daemon=True).start()
+
+    def _show_digest_result(self, out_path, err) -> bool:
+        root = self.get_root()
+        dlg = Adw.MessageDialog()
+        if isinstance(root, Gtk.Window):
+            dlg.set_transient_for(root)
+        dlg.set_modal(True)
+        if err:
+            dlg.set_heading("Digest build failed")
+            dlg.set_body(err)
+            dlg.add_response("ok", "OK")
+            dlg.set_default_response("ok")
+            dlg.set_close_response("ok")
+        else:
+            dlg.set_heading("Digest built")
+            dlg.set_body(f"Saved to:\n{out_path}\n\nOpen it in your editor "
+                         "or browser to review.")
+            dlg.add_response("ok", "OK")
+            dlg.set_default_response("ok")
+            dlg.set_close_response("ok")
+        dlg.present()
+        return False
 
     def _build_ui(self) -> None:
         # Header
@@ -32,6 +109,14 @@ class DashboardView(Gtk.Box):
         refresh_btn.connect("clicked", lambda _: self.refresh())
         refresh_btn.set_tooltip_text("Refresh (Ctrl+R)")
         header.pack_end(refresh_btn)
+        # v2.1: build today's Labyrinth digest on demand (instead of
+        # waiting for the 07:00 systemd timer). Runs in a worker
+        # thread so we never block the GTK main loop.
+        digest_btn = Gtk.Button(label="Build digest now")
+        digest_btn.set_tooltip_text(
+            "Generate the last-24h Labyrinth digest report immediately")
+        digest_btn.connect("clicked", lambda *_: self._build_digest_now())
+        header.pack_end(digest_btn)
         self.append(header)
 
         scroll = Gtk.ScrolledWindow()
@@ -40,6 +125,15 @@ class DashboardView(Gtk.Box):
 
         content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
         content.set_margin_all(24)
+
+        # ── Centerpiece honey pot ─────────────────────────────────
+        # Fills with honey as events accumulate, pulses on new events,
+        # overflows when full. Doubles as the app's visual identity.
+        pot_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        pot_row.set_halign(Gtk.Align.CENTER)
+        self._honey_pot = HoneyPotWidget()
+        pot_row.append(self._honey_pot)
+        content.append(pot_row)
 
         # Stat cards row
         self._cards_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
@@ -99,6 +193,7 @@ class DashboardView(Gtk.Box):
             now = datetime.now(timezone.utc)
             ago_24h = now - timedelta(hours=24)
             ago_1h = now - timedelta(hours=1)
+            ago_7d = now - timedelta(days=7)
 
             with get_db() as db:
                 total = db.execute(select(func.count(Event.id))).scalar() or 0
@@ -107,6 +202,10 @@ class DashboardView(Gtk.Box):
                 ).scalar() or 0
                 last_1h = db.execute(
                     select(func.count(Event.id)).where(Event.timestamp >= ago_1h)
+                ).scalar() or 0
+                # 7-day rolling — feeds the centerpiece honey pot.
+                last_7d = db.execute(
+                    select(func.count(Event.id)).where(Event.timestamp >= ago_7d)
                 ).scalar() or 0
                 critical_unacked = db.execute(
                     select(func.count(Alert.id)).where(
@@ -151,13 +250,18 @@ class DashboardView(Gtk.Box):
                 honeypots = db.execute(select(Honeypot)).scalars().all()
                 health_data = [(h.name, h.honeypot_type, h.enabled, h.last_event_at) for h in honeypots]
 
-            GLib.idle_add(self._update_ui, total, last_24h, last_1h, critical_unacked,
+            GLib.idle_add(self._update_ui, total, last_24h, last_1h, last_7d, critical_unacked,
                           sev_data, list(top_attk), list(top_creds), recent_data, health_data)
         except Exception as e:
             log.error("Dashboard load failed", error=str(e))
 
-    def _update_ui(self, total, last_24h, last_1h, critical_unacked,
+    def _update_ui(self, total, last_24h, last_1h, last_7d, critical_unacked,
                    sev_data, top_attk, top_creds, recent_data, health_data) -> bool:
+        if self._honey_pot is not None:
+            # Pot represents a rolling 7-day window so it fills visibly on
+            # a fresh install, drains gently during quiet stretches, and
+            # still spikes hard on an active attack burst.
+            self._honey_pot.set_event_count(last_7d)
         self._update_card(self._card_total, f"{total:,}")
         self._update_card(self._card_24h, f"{last_24h:,}")
         self._update_card(self._card_1h, f"{last_1h:,}")
