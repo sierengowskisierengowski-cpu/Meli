@@ -173,9 +173,7 @@ install_python_deps() {
 # ── Phase 4: Application files ────────────────────────────────────────────────
 install_app_files() {
     log "Phase 4: Copying application files to $INSTALL_DIR..."
-    rsync -a --exclude=".git" --exclude="__pycache__" --exclude="*.pyc" \
-        --exclude=".venv" --exclude="venv" --exclude="dist" --exclude="build" \
-        "$APP_DIR/" "$INSTALL_DIR/app/"
+    
     ok "Application files copied."
 
     log "Creating launcher script..."

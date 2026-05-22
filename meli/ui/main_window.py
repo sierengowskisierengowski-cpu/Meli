@@ -54,6 +54,7 @@ class MeliMainWindow(Adw.ApplicationWindow):
         self._view_instances: dict[str, Gtk.Widget] = {}
         self._lock_overlay: Gtk.Widget | None = None
         self._idle_timer: int | None = None
+        self._idle_minutes: int = 0
 
         self._build_ui()
         self._register_shortcuts()

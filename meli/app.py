@@ -9,8 +9,16 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-from gi.repository import Gtk, Adw, GLib, Gio  # noqa: E402
+from gi.repository import Gtk, Adw, GLib, Gio, Gdk  # noqa: E402
 
+
+# GTK4 compatibility shim
+def _set_margin_all(widget, margin):
+    widget.set_margin_top(margin)
+    widget.set_margin_bottom(margin)
+    widget.set_margin_start(margin)
+    widget.set_margin_end(margin)
+Gtk.Widget.set_margin_all = _set_margin_all
 import structlog
 from meli.config import get_config
 from meli.database import init_db
@@ -104,8 +112,7 @@ class MeliApplication(Adw.Application):
             .amber-accent { color: #f59e0b; }
         """)
         Gtk.StyleContext.add_provider_for_display(
-            self.get_default().get_display() if hasattr(self, 'get_display') else
-            Gtk.Widget.get_default_display(),  # type: ignore
+            Gdk.Display.get_default(),
             css,
             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
         )
