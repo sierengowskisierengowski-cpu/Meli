@@ -125,21 +125,37 @@ class LabyrinthSessionsView(Gtk.Box):
         body.append(spinner_row)
 
         def _worker():
+            err = None
+            cohorts: list = []
             try:
                 from meli.labyrinth import cohort
                 cohorts = cohort.scan(limit=500)
             except Exception as e:
-                log.warning("cohort scan failed", error=str(e))
-                cohorts = []
-            GLib.idle_add(_apply, cohorts)
+                err = str(e)
+                log.warning("cohort scan failed", error=err)
+            GLib.idle_add(_apply, cohorts, err)
 
-        def _apply(cohorts):
+        def _apply(cohorts, err):
             # Clear spinner
             child = body.get_first_child()
             while child:
                 nxt = child.get_next_sibling()
                 body.remove(child)
                 child = nxt
+            if err:
+                err_title = Gtk.Label(label="Cohort scan failed")
+                err_title.add_css_class("title-4")
+                err_title.add_css_class("error")
+                err_title.set_xalign(0)
+                body.append(err_title)
+                err_body = Gtk.Label(label=err)
+                err_body.add_css_class("dim-label")
+                err_body.add_css_class("monospace")
+                err_body.set_wrap(True)
+                err_body.set_xalign(0)
+                err_body.set_selectable(True)
+                body.append(err_body)
+                return False
             if not cohorts:
                 lbl = Gtk.Label(label="No cohorts found yet — Meli needs more recorded sessions.")
                 lbl.add_css_class("dim-label")
@@ -160,7 +176,11 @@ class LabyrinthSessionsView(Gtk.Box):
         win.present()
 
     def _make_cohort_row(self, c) -> Gtk.Widget:
-        # Cohort dataclass: fingerprint, members (list[Member]), size
+        # Cohort dataclass (meli/labyrinth/cohort.py):
+        #   fp: str           # representative fingerprint
+        #   members: list     # SessionFingerprint
+        #   label: str        # human-readable summary
+        #   size: int         # @property → len(members)
         frame = Gtk.Frame()
         frame.add_css_class("card")
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
@@ -169,17 +189,18 @@ class LabyrinthSessionsView(Gtk.Box):
         box.set_margin_start(12)
         box.set_margin_end(12)
         head = Gtk.Box(spacing=10)
-        fp = Gtk.Label()
-        fp.set_xalign(0)
-        fp.set_markup(f"<b><tt>{GLib.markup_escape_text(getattr(c, 'fingerprint', '?'))}</tt></b>")
-        head.append(fp)
+        title = Gtk.Label()
+        title.set_xalign(0)
+        # Prefer human-readable label; fall back to the raw fingerprint.
+        display = getattr(c, "label", "") or getattr(c, "fp", "") or "?"
+        title.set_markup(
+            f"<b><tt>{GLib.markup_escape_text(str(display))}</tt></b>")
+        head.append(title)
         sp = Gtk.Box(); sp.set_hexpand(True); head.append(sp)
-        size = getattr(c, "size", 0)
-        if callable(size):
-            try:
-                size = c.size()
-            except Exception:
-                size = len(getattr(c, "members", []))
+        try:
+            size = int(c.size)        # @property
+        except Exception:
+            size = len(getattr(c, "members", []))
         badge = Gtk.Label(label=f"{size} session{'s' if size != 1 else ''}")
         badge.add_css_class("warning" if size >= 3 else "dim-label")
         head.append(badge)

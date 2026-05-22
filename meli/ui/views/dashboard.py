@@ -54,12 +54,12 @@ class DashboardView(Gtk.Box):
         result dialog with the output path so the operator can open it
         in their editor of choice. Disables the button while in-flight
         so rapid double-clicks don't queue multiple builds."""
-        try:
-            sender = getattr(self, "_digest_btn_cache", None)
-            if sender is not None and not sender.get_sensitive():
-                return
-        except Exception:
-            pass
+        btn = getattr(self, "_digest_btn", None)
+        if btn is not None:
+            if not btn.get_sensitive():
+                return  # already running
+            btn.set_sensitive(False)
+            btn.set_label("Building digest…")
 
         def _worker():
             err = None
@@ -79,6 +79,10 @@ class DashboardView(Gtk.Box):
                          daemon=True).start()
 
     def _show_digest_result(self, out_path, err) -> bool:
+        btn = getattr(self, "_digest_btn", None)
+        if btn is not None:
+            btn.set_sensitive(True)
+            btn.set_label("Build digest now")
         root = self.get_root()
         dlg = Adw.MessageDialog()
         if isinstance(root, Gtk.Window):
@@ -112,11 +116,12 @@ class DashboardView(Gtk.Box):
         # v2.1: build today's Labyrinth digest on demand (instead of
         # waiting for the 07:00 systemd timer). Runs in a worker
         # thread so we never block the GTK main loop.
-        digest_btn = Gtk.Button(label="Build digest now")
-        digest_btn.set_tooltip_text(
+        self._digest_btn = Gtk.Button(label="Build digest now")
+        self._digest_btn.set_tooltip_text(
             "Generate the last-24h Labyrinth digest report immediately")
-        digest_btn.connect("clicked", lambda *_: self._build_digest_now())
-        header.pack_end(digest_btn)
+        self._digest_btn.connect("clicked",
+                                 lambda *_: self._build_digest_now())
+        header.pack_end(self._digest_btn)
         self.append(header)
 
         scroll = Gtk.ScrolledWindow()

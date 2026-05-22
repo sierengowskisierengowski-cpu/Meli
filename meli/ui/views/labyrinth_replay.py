@@ -367,17 +367,20 @@ class LabyrinthReplayView(Gtk.Box):
 
         def _worker():
             err = None
+            count = 0
             try:
                 from meli.labyrinth import blocklist
-                rendered = blocklist.generate(fmt)
+                # generate() returns (rendered_text, entry_count).
+                rendered, count = blocklist.generate(fmt)
                 with open(path, "w", encoding="utf-8") as fh:
                     fh.write(rendered)
                 log.info("blocklist exported", path=path, fmt=fmt,
-                         bytes=len(rendered))
+                         bytes=len(rendered), entries=count)
             except Exception as e:
                 err = str(e)
                 log.warning("blocklist export failed", path=path, error=err)
-            GLib.idle_add(self._show_export_result, "Blocklist", path, err)
+            kind = f"Blocklist ({count} entr{'y' if count == 1 else 'ies'})"
+            GLib.idle_add(self._show_export_result, kind, path, err)
 
         threading.Thread(target=_worker, name="meli-blocklist-export",
                          daemon=True).start()
