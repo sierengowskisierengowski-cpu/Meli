@@ -6,7 +6,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
-MELI_VERSION="2.6.1"
+MELI_VERSION="2.6.2"
 INSTALL_DIR="/opt/meli"
 BIN_LINK="/usr/local/bin/meli"
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -37,7 +37,7 @@ cat << 'EOF'
   ██║╚██╔╝██║██╔══╝  ██║     ██║
   ██║ ╚═╝ ██║███████╗███████╗██║
   ╚═╝     ╚═╝╚══════╝╚══════╝╚═╝
-  Honeypot Command Center v2.6.1
+  Honeypot Command Center v2.6.2
   Author: Joseph Sierengowski
 
 EOF
@@ -187,36 +187,48 @@ install_app_files() {
         sudo rm -rf "$INSTALL_DIR/app/meli"
     fi
 
-    # 4c. Copy fresh source.
+    # 4c. Copy fresh source into /opt/meli/app. This is still useful so
+    # systemd units and packaging recipes can point at a stable path,
+    # but it is NOT how `meli` gets loaded at runtime any more — see 4d.
     rsync -a --delete-after \
         --exclude=".git" --exclude="__pycache__" --exclude="*.pyc" \
         --exclude=".venv" --exclude="venv" --exclude="dist" --exclude="build" \
         "$APP_DIR/" "$INSTALL_DIR/app/"
     ok "Application files copied."
 
-    # 4d. Report what version actually landed in /opt/meli/app so we can't
-    # silently install the wrong tree (this was the v2.6.0 stale-copy bug:
-    # the launcher loaded from cwd, never from $INSTALL_DIR/app).
+    # 4d. *** This is the canonical install of the package ***
+    # Drop any prior meli install from the venv, then pip-install the
+    # current source into the venv's site-packages. This is the only
+    # way `/opt/meli/venv/bin/python -m meli` can find the module
+    # without depending on cwd or PYTHONPATH gymnastics.
+    log "Installing Meli package into venv via pip..."
+    "$VENV/bin/pip" uninstall -y meli >/dev/null 2>&1 || true
+    "$VENV/bin/pip" install --no-deps --force-reinstall "$APP_DIR" \
+        || die "pip install of Meli package failed — check the output above."
+    ok "Meli package installed into $VENV."
+
+    # 4e. Sanity check: ensure the venv can actually import meli and
+    # report which version it sees. If this fails the launcher will
+    # too, so bail out loud rather than letting the user discover it.
     local installed_version
-    installed_version=$(grep -oP '^__version__ = "\K[^"]+' "$INSTALL_DIR/app/meli/__init__.py" 2>/dev/null || echo "unknown")
-    ok "Installed package version: ${installed_version}"
+    installed_version=$("$VENV/bin/python" -c \
+        "import meli, sys; sys.stdout.write(meli.__version__)" 2>/dev/null) \
+        || die "Post-install import check failed — meli is not importable from the venv."
+    ok "Installed package version: ${installed_version} (verified via venv import)"
 
     log "Creating launcher script..."
-    # IMPORTANT: pin PYTHONPATH to the install dir so `meli` always loads
-    # from /opt/meli/app regardless of where the user runs the command
-    # from. The previous launcher relied on cwd to contain a meli/
-    # subdirectory, which silently loaded the source tree instead of the
-    # installed copy — pulling stale (or just plain wrong) code.
+    # Launcher is now trivially simple: just call the venv's python
+    # with `-m meli`. The package lives in $VENV/lib/.../site-packages,
+    # so Python finds it natively regardless of cwd or PYTHONPATH.
     sudo tee "$BIN_LINK" > /dev/null << EOF
 #!/usr/bin/env bash
 # Meli launcher — installed by install.sh (v${MELI_VERSION})
-# Pin PYTHONPATH so this command works from ANY directory and always
-# loads from the installed tree, not from whatever happens to be in cwd.
-exec env PYTHONPATH="$INSTALL_DIR/app\${PYTHONPATH:+:\$PYTHONPATH}" \\
-    "$VENV/bin/python" -m meli "\$@"
+# The meli package is pip-installed into the venv at $VENV, so
+# Python finds it natively from any working directory.
+exec "$VENV/bin/python" -m meli "\$@"
 EOF
     sudo chmod +x "$BIN_LINK"
-    ok "Launcher created at $BIN_LINK (PYTHONPATH-pinned to $INSTALL_DIR/app)."
+    ok "Launcher created at $BIN_LINK."
 }
 
 # ── Phase 5: Desktop integration ─────────────────────────────────────────────

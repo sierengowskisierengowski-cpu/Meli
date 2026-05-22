@@ -2,6 +2,61 @@
 
 All notable changes to Meli are documented here.
 
+## [2.6.2] — 2026-05-22
+
+### Fixed — install actually installs the package now
+
+v2.6.1's launcher pinned `PYTHONPATH=/opt/meli/app`, which would
+have worked **if** `/opt/meli/app/meli/` actually existed after
+install. On a fresh box it didn't — `meli --version` produced
+`No module named meli` — because the install path was rsync-only,
+never a real Python install.
+
+Two real problems found and fixed:
+
+1. **`pyproject.toml` declared a non-existent build backend**
+   (`setuptools.backends.legacy:build`). The real one is
+   `setuptools.build_meta`. Any attempt to `pip install .` was
+   silently failing.
+2. **`install.sh` never ran `pip install .`** — it only rsynced
+   source files into `/opt/meli/app`. The launcher's `python -m
+   meli` then had to find the package on `sys.path`, which it
+   could not, because the venv was created with
+   `--system-site-packages` (which adds the *system* site-packages,
+   not `/opt/meli/app`).
+
+Fixes:
+
+- **`pyproject.toml`** `[build-system].build-backend` →
+  `setuptools.build_meta` (the real one).
+- **`install.sh` Phase 4** now does the canonical thing: rsync the
+  source for systemd/packaging convenience, then **`pip install
+  --no-deps --force-reinstall $APP_DIR` into the venv**. The
+  package lands in `/opt/meli/venv/lib/python3.x/site-packages/meli`
+  where Python finds it natively.
+- **Post-install sanity check**: the installer now runs
+  `"$VENV/bin/python" -c 'import meli; print(meli.__version__)'`
+  and bails with a loud error if that fails, so you can never
+  again finish `install.sh` only to discover the launcher doesn't
+  work.
+- **Launcher reduced to**:
+  ```sh
+  exec /opt/meli/venv/bin/python -m meli "$@"
+  ```
+  No more `PYTHONPATH`, no more cwd dependence — `meli` works from
+  any directory because the package lives in site-packages.
+
+After this, on the user's box:
+
+```
+cd ~/meli-fresh && git pull && sudo ./install.sh
+```
+
+should print `[  ok ] Installed package version: 2.6.2 (verified
+via venv import)` near the end. Then `cd ~ && meli --version`
+should print `2.6.2` and `meli` should launch into the v2.6.0
+splash + honeycomb lock screen.
+
 ## [2.6.1] — 2026-05-22
 
 ### Fixed — install.sh was silently loading the wrong code
