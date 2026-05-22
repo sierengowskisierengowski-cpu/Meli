@@ -2,6 +2,49 @@
 
 All notable changes to Meli are documented here.
 
+## [2.6.0] — 2026-05-22
+
+### Changed — Splash screen v2: real gooey vertical drips
+
+- **`meli/ui/splash_screen.py`** rewritten again after user feedback
+  that the v2.5.0 drips read as stiff angled "matchsticks" rather
+  than honey actually dripping. New animation:
+    - 0.0–0.6s   Dark hold.
+    - 0.4–1.6s   SPLAT: a wide irregular 18-lobe honey blob slams
+                 into the top of the screen and spreads across ~72%
+                 of the window width and the top third of the
+                 window height, with a brief settling wobble.
+    - 1.4–5.8s   Six **vertical** gooey strands ooze straight down
+                 from the splat underside. Each strand is drawn as
+                 a single closed Cairo path: widest at the
+                 attachment, narrowing through the middle, swelling
+                 into a heavy teardrop bulb at the tip. Per-strand
+                 jitter in length, thickness, sway, and start time
+                 keeps the cascade organic. Vertical honey gradient
+                 fill + halo + rim highlight + specular sheen on
+                 each strand.
+    - 5.0–6.8s   MELI wordmark fades in centered below the drip
+                 field (no longer anchored to individual drip tips —
+                 letters and drips are independent now).
+    - 6.5–7.4s   Subtitle fades in.
+    - 7.4–8.4s   Hold; 8.4–9.0s fade to black.
+
+### Changed — Lock screen: honeycomb backdrop instead of flat black
+
+- **`meli/ui/lock_screen.py`** rewritten. The veil is no longer a
+  solid `#0b0b10` rectangle. A Cairo `_HoneycombBackdrop`
+  `DrawingArea` now fills the entire window with a tiled hexagon
+  grid: dark-amber outlines on the hive-black/comb-panel gradient,
+  with cells near the geometric center filled with a faint amber
+  wash that **breathes** on a 4.2s sine pulse. A radial amber
+  bloom sits behind the auth card and an edge vignette focuses
+  the eye toward the center.
+- The auth form moves into a translucent comb-panel card with a
+  thin amber border and soft shadow, so it reads cleanly against
+  the honeycomb without losing the theme.
+- 12 fps redraw cadence on the backdrop — gentle pulse, negligible
+  CPU.
+
 ## [2.5.0] — 2026-05-22
 
 ### Changed — Splash screen redesigned (fullscreen honey splat)
