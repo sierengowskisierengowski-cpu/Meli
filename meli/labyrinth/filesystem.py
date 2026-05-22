@@ -282,11 +282,9 @@ class FakeFS:
             return self._cwd
         if not path.startswith("/"):
             path = self._cwd.rstrip("/") + "/" + path
-        # Use PurePosixPath for normalisation.
-        return str(PurePosixPath(path).resolve() if False
-                   else PurePosixPath("/").joinpath(
-                       *[p for p in path.split("/") if p]))
-        # Pure normalization (no symlink resolution since this is fake).
+        # Pure normalisation without symlink resolution (this is a fake FS).
+        return str(PurePosixPath("/").joinpath(
+            *[p for p in path.split("/") if p]))
 
     def _norm(self, path: str) -> str:
         """Absolute normalised path."""

@@ -230,9 +230,8 @@ class LabyrinthDaemon:
 
         async with server:
             # Poll stop_event so we can shut down cleanly.
-            import asyncio as _asyncio
             while not self._stop_event.is_set():
-                await _asyncio.sleep(0.5)
+                await asyncio.sleep(0.5)
 
         self._telnet_server = None
 
