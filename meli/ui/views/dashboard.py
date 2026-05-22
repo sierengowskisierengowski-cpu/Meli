@@ -298,12 +298,13 @@ class DashboardView(Gtk.Box):
                     .limit(5)
                 ).all()
 
-                # Top creds
+                # Top creds — Credential model has source_honeypots
+                # (JSON list) not honeypot_service. Parse it in render.
                 top_creds = db.execute(
                     select(Credential.username,
                            Credential.password,
                            Credential.attempt_count,
-                           Credential.honeypot_service)
+                           Credential.source_honeypots)
                     .order_by(Credential.attempt_count.desc())
                     .limit(5)
                 ).all()
@@ -424,10 +425,21 @@ class DashboardView(Gtk.Box):
             empty = Gtk.Label(label="No credentials captured yet")
             empty.add_css_class("text-muted")
             self._top_cred_body.append(empty)
-        for i, (user, pwd, cnt, svc) in enumerate(top_creds, start=1):
+        for i, (user, pwd, cnt, src_honeypots) in enumerate(top_creds, start=1):
             label = f"{user or '—'} : {pwd or '—'}"
+            # source_honeypots is JSON list-as-text: ["cowrie","heralding"]
+            svc = "—"
+            if src_honeypots:
+                try:
+                    import json as _json
+                    items = _json.loads(src_honeypots) if isinstance(
+                        src_honeypots, str) else src_honeypots
+                    if isinstance(items, list) and items:
+                        svc = ", ".join(str(x) for x in items[:3])
+                except Exception:
+                    svc = str(src_honeypots)[:24]
             self._top_cred_body.append(
-                self._rank_row(i, label, f"{svc or '—'} · {cnt}x", cnt))
+                self._rank_row(i, label, f"{svc} · {cnt}x", cnt))
 
         # Live ticker
         self._clear(self._ticker_body)

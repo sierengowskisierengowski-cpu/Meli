@@ -768,3 +768,77 @@ navigationsplitview > sidebar,
 navigationsplitview > content {
     background-color: @meli_hive_black;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   CASCADE-WINNING OVERRIDES — v2.7.4
+   The hive theme was losing to libadwaita's default card/box styles.
+   These rules raise selector specificity (window.meli-window scope
+   + !important) so the gradients/glow/border actually paint.
+   ═══════════════════════════════════════════════════════════════════ */
+
+window.meli-window,
+window.meli-window > *,
+window.meli-window box {
+    background-color: @meli_hive_black !important;
+}
+
+window.meli-window .hive-panel,
+.hive-panel {
+    background-image: linear-gradient(155deg,
+        alpha(@meli_comb_panel, 0.96) 0%,
+        alpha(@meli_comb_dark, 1.0) 100%) !important;
+    background-color: @meli_comb_dark !important;
+    border: 1px solid alpha(@meli_raw_honey, 0.35) !important;
+    border-radius: 14px !important;
+    box-shadow: inset 0 1px 0 alpha(@meli_pale_comb, 0.05),
+                0 8px 28px rgba(0, 0, 0, 0.55),
+                0 0 18px alpha(@meli_raw_honey, 0.08) !important;
+    padding: 16px !important;
+}
+
+window.meli-window .kpi-tile,
+.kpi-tile {
+    background-image: linear-gradient(155deg,
+        @meli_comb_panel 0%, @meli_comb_dark 100%) !important;
+    background-color: @meli_comb_panel !important;
+    border: 1px solid alpha(@meli_raw_honey, 0.30) !important;
+    border-top: 3px solid @meli_amber_glow !important;
+    border-radius: 14px !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.50),
+                0 0 16px alpha(@meli_raw_honey, 0.10) !important;
+    padding: 14px 16px !important;
+}
+
+window.meli-window .hive-header,
+.hive-header {
+    background-image: linear-gradient(180deg,
+        @meli_comb_panel 0%, @meli_comb_dark 100%) !important;
+    border-bottom: 1px solid alpha(@meli_raw_honey, 0.35) !important;
+    box-shadow: inset 0 -1px 0 alpha(@meli_raw_honey, 0.18),
+                0 2px 12px rgba(0, 0, 0, 0.5) !important;
+    padding: 10px 18px !important;
+}
+
+window.meli-window .hive-sidebar,
+.hive-sidebar {
+    background-image: linear-gradient(180deg,
+        alpha(@meli_comb_panel, 0.98) 0%,
+        alpha(@meli_hive_black, 1.0) 100%) !important;
+    background-color: @meli_comb_dark !important;
+    border-right: 1px solid alpha(@meli_raw_honey, 0.30) !important;
+    box-shadow: inset -1px 0 0 alpha(@meli_raw_honey, 0.18) !important;
+}
+
+/* Beat libadwaita's .card / .boxed-list backdrop on PreferencesGroup */
+window.meli-window preferencesgroup list,
+window.meli-window preferencesgroup listbox,
+window.meli-window .card,
+preferencesgroup list,
+preferencesgroup listbox {
+    background-image: linear-gradient(155deg,
+        alpha(@meli_comb_panel, 0.95) 0%,
+        alpha(@meli_comb_dark, 1.0) 100%) !important;
+    background-color: @meli_comb_panel !important;
+    border: 1px solid alpha(@meli_raw_honey, 0.28) !important;
+    border-radius: 12px !important;
+}
