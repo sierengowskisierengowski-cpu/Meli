@@ -10,6 +10,8 @@ import json
 import threading
 import structlog
 
+from meli.ui.widgets import HiveHeader
+
 log = structlog.get_logger()
 
 
@@ -19,8 +21,11 @@ class IpReputationView(Gtk.Box):
         self._build_ui()
 
     def _build_ui(self) -> None:
-        header = Adw.HeaderBar()
-        header.set_title_widget(Gtk.Label(label="IP Reputation Lookup"))
+        header = HiveHeader(title="IP Reputation Lookup",
+
+                           status_label="READY",
+
+                           status_kind="configured")
         self.append(header)
 
         search_box = Gtk.Box(spacing=8)

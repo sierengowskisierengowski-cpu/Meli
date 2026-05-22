@@ -29,6 +29,8 @@ from gi.repository import Gio  # noqa: E402  (Gtk already required above)
 
 import structlog
 
+from meli.ui.widgets import HiveHeader
+
 log = structlog.get_logger()
 
 REFRESH_MS = 2000
@@ -100,8 +102,11 @@ class LabyrinthSessionsView(Gtk.Box):
             win.set_modal(False)
 
         outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        bar = Adw.HeaderBar()
-        bar.set_title_widget(Gtk.Label(label="Cohorts (last 500 sessions)"))
+        bar = HiveHeader(title="Cohorts (last 500 sessions)",
+
+                           status_label="ANALYTICS",
+
+                           status_kind="configured")
         outer.append(bar)
 
         scroll = Gtk.ScrolledWindow()
@@ -219,8 +224,11 @@ class LabyrinthSessionsView(Gtk.Box):
         return frame
 
     def _build_ui(self) -> None:
-        header = Adw.HeaderBar()
-        header.set_title_widget(Gtk.Label(label="Labyrinth Sessions"))
+        header = HiveHeader(title="Labyrinth Sessions",
+
+                           status_label="LIVE",
+
+                           status_kind="live")
         refresh_btn = Gtk.Button.new_from_icon_name("view-refresh-symbolic")
         refresh_btn.set_tooltip_text("Refresh now")
         refresh_btn.connect("clicked", lambda *_: self._refresh())

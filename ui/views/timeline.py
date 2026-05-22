@@ -8,6 +8,8 @@ from gi.repository import Gtk, Adw, GLib
 
 import threading
 import structlog
+
+from meli.ui.widgets import HiveHeader
 from datetime import datetime, timedelta, timezone
 
 log = structlog.get_logger()
@@ -21,8 +23,11 @@ class TimelineView(Gtk.Box):
         self.refresh()
 
     def _build_ui(self) -> None:
-        header = Adw.HeaderBar()
-        header.set_title_widget(Gtk.Label(label="Timeline / Historical"))
+        header = HiveHeader(title="Timeline / Historical",
+
+                           status_label="ANALYTICS",
+
+                           status_kind="configured")
 
         period_box = Gtk.Box(spacing=4)
         for label, key in [("1h", "1h"), ("24h", "24h"), ("7d", "7d"), ("30d", "30d"), ("90d", "90d")]:

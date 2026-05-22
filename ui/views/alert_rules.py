@@ -10,6 +10,8 @@ import json
 import threading
 import structlog
 
+from meli.ui.widgets import HiveHeader
+
 log = structlog.get_logger()
 
 
@@ -20,8 +22,11 @@ class AlertRulesView(Gtk.Box):
         self.refresh()
 
     def _build_ui(self) -> None:
-        header = Adw.HeaderBar()
-        header.set_title_widget(Gtk.Label(label="Alert Rules"))
+        header = HiveHeader(title="Alert Rules",
+
+                           status_label="ARMED",
+
+                           status_kind="configured")
         add_btn = Gtk.Button(label="New Rule")
         add_btn.add_css_class("suggested-action")
         add_btn.connect("clicked", self._on_add_rule)

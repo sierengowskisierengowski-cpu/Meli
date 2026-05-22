@@ -22,6 +22,8 @@ from datetime import datetime, timezone
 
 import structlog
 
+from meli.ui.widgets import HiveHeader
+
 log = structlog.get_logger()
 
 SPEEDS = [("¼×", 0.25), ("1×", 1.0), ("2×", 2.0), ("8×", 8.0), ("Instant", 0.0)]
@@ -68,8 +70,11 @@ class LabyrinthReplayView(Gtk.Box):
     # ── UI ────────────────────────────────────────────────────────────
 
     def _build_ui(self) -> None:
-        header = Adw.HeaderBar()
-        header.set_title_widget(Gtk.Label(label="Labyrinth Replay"))
+        header = HiveHeader(title="Labyrinth Replay",
+
+                           status_label="LIVE",
+
+                           status_kind="live")
         refresh_btn = Gtk.Button.new_from_icon_name("view-refresh-symbolic")
         refresh_btn.set_tooltip_text("Reload session list")
         refresh_btn.connect("clicked", lambda *_: self._refresh_list_async())

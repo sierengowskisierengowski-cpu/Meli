@@ -9,6 +9,8 @@ from gi.repository import Gtk, Adw, GLib
 import json
 import threading
 import structlog
+
+from meli.ui.widgets import HiveHeader
 from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 
@@ -56,8 +58,11 @@ class BotnetView(Gtk.Box):
         self.refresh()
 
     def _build_ui(self) -> None:
-        header = Adw.HeaderBar()
-        header.set_title_widget(Gtk.Label(label="Botnet Detection"))
+        header = HiveHeader(title="Botnet Detection",
+
+                           status_label="LIVE",
+
+                           status_kind="live")
         refresh_btn = Gtk.Button.new_from_icon_name("view-refresh-symbolic")
         refresh_btn.connect("clicked", lambda _: self.refresh())
         header.pack_end(refresh_btn)

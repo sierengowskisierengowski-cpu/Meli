@@ -410,3 +410,88 @@ scrollbar slider {
 }
 scrollbar slider:hover { background-color: alpha(@meli_amber_glow, 0.45); }
 
+
+/* ── v2.7.1: Live Feed controls + filter pills ───────────────────── */
+button.hive-action {
+    background-image: none;
+    background-color: alpha(@meli_amber_glow, 0.10);
+    color: @meli_amber_glow;
+    border: 1px solid alpha(@meli_amber_glow, 0.45);
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-family: monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-shadow: none;
+    box-shadow: none;
+}
+button.hive-action:hover {
+    background-color: alpha(@meli_amber_glow, 0.18);
+    color: @meli_pale_comb;
+    border-color: @meli_amber_glow;
+}
+button.hive-action:checked,
+button.hive-action:active {
+    background-color: @meli_amber_glow;
+    color: #1a1208;
+    border-color: @meli_amber_glow;
+    box-shadow: 0 0 14px alpha(@meli_amber_glow, 0.55);
+}
+
+button.hive-pill-filter {
+    background-image: none;
+    background-color: transparent;
+    color: alpha(@meli_pale_comb, 0.70);
+    border: 1px solid alpha(@meli_pale_comb, 0.18);
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-family: monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-shadow: none;
+    box-shadow: none;
+    min-height: 0;
+}
+button.hive-pill-filter:hover {
+    color: @meli_pale_comb;
+    border-color: alpha(@meli_amber_glow, 0.55);
+}
+button.hive-pill-filter:checked,
+button.hive-pill-filter.active {
+    background-color: @meli_amber_glow;
+    color: #1a1208;
+    border-color: @meli_amber_glow;
+    box-shadow: 0 0 12px alpha(@meli_amber_glow, 0.55);
+}
+button.hive-pill-filter.sev-critical:checked,
+button.hive-pill-filter.sev-critical.active {
+    background-color: @meli_sting_red; color: #1a0606;
+    border-color: @meli_sting_red;
+    box-shadow: 0 0 12px alpha(@meli_sting_red, 0.55);
+}
+button.hive-pill-filter.sev-high:checked,
+button.hive-pill-filter.sev-high.active {
+    background-color: #ea7f1c; color: #1a0e06;
+    border-color: #ea7f1c;
+    box-shadow: 0 0 12px alpha(#ea7f1c, 0.55);
+}
+button.hive-pill-filter.sev-medium:checked,
+button.hive-pill-filter.sev-medium.active {
+    background-color: @meli_raw_honey; color: #1a1208;
+    border-color: @meli_raw_honey;
+    box-shadow: 0 0 12px alpha(@meli_raw_honey, 0.55);
+}
+button.hive-pill-filter.sev-low:checked,
+button.hive-pill-filter.sev-low.active {
+    background-color: @meli_beeswax; color: #1a1208;
+    border-color: @meli_beeswax;
+}
+button.hive-pill-filter.sev-info:checked,
+button.hive-pill-filter.sev-info.active {
+    background-color: alpha(@meli_pale_comb, 0.30);
+    color: @meli_pale_comb;
+    border-color: alpha(@meli_pale_comb, 0.50);
+}
+.mono { font-family: monospace; }

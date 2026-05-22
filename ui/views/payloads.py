@@ -9,6 +9,8 @@ from gi.repository import Gtk, Adw, GLib
 import threading
 import structlog
 
+from meli.ui.widgets import HiveHeader
+
 log = structlog.get_logger()
 
 
@@ -19,8 +21,11 @@ class PayloadsView(Gtk.Box):
         self.refresh()
 
     def _build_ui(self) -> None:
-        header = Adw.HeaderBar()
-        header.set_title_widget(Gtk.Label(label="Payloads / Malware"))
+        header = HiveHeader(title="Payloads / Malware",
+
+                           status_label="LIVE",
+
+                           status_kind="live")
         refresh_btn = Gtk.Button.new_from_icon_name("view-refresh-symbolic")
         refresh_btn.connect("clicked", lambda _: self.refresh())
         header.pack_end(refresh_btn)

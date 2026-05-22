@@ -10,6 +10,8 @@ import subprocess
 import threading
 import structlog
 
+from meli.ui.widgets import HiveHeader
+
 log = structlog.get_logger()
 
 
@@ -20,8 +22,11 @@ class ReportsView(Gtk.Box):
         self.refresh()
 
     def _build_ui(self) -> None:
-        header = Adw.HeaderBar()
-        header.set_title_widget(Gtk.Label(label="Reports"))
+        header = HiveHeader(title="Reports",
+
+                           status_label="READY",
+
+                           status_kind="configured")
         gen_btn = Gtk.Button(label="Generate Report")
         gen_btn.add_css_class("suggested-action")
         gen_btn.connect("clicked", self._on_generate)
