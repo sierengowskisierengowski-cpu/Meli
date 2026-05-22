@@ -166,6 +166,17 @@ class HiveHeader(Gtk.Box):
         """Append a widget after the avatar (refresh buttons, etc.)."""
         self._tail.append(widget)
 
+    def pack_start(self, widget: Gtk.Widget) -> None:
+        """GTK3 Adw.HeaderBar compat — drops the widget into the trailing
+        tail slot. Behaviourally identical to pack_end for our purposes;
+        added so legacy views that call ``header.pack_start(btn)`` after
+        the HeaderBar→HiveHeader sweep don't blow up at construction."""
+        self._tail.append(widget)
+
+    def add(self, widget: Gtk.Widget) -> None:  # noqa: D401
+        """GTK3 container.add() compat — same as pack_end."""
+        self._tail.append(widget)
+
     def set_status(self, label: str, kind: str = "operational") -> None:
         """Update the status pill ('LIVE', 'SNIFFING', 'CONFIGURED', ...)."""
         for old in ("operational", "online", "live", "honey", "configured",

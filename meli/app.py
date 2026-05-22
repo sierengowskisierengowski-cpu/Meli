@@ -356,7 +356,9 @@ class MeliApplication(Adw.Application):
         try:
             if css_path.is_file():
                 css.load_from_path(str(css_path))
-                log.info("Loaded Honey Trap theme", path=str(css_path))
+                size = css_path.stat().st_size
+                log.info("Loaded Honey Trap theme",
+                         path=str(css_path), bytes=size)
             else:
                 raise FileNotFoundError(css_path)
         except Exception as e:
@@ -380,7 +382,7 @@ class MeliApplication(Adw.Application):
             Gtk.StyleContext.add_provider_for_display(
                 display,
                 css,
-                Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
+                Gtk.STYLE_PROVIDER_PRIORITY_USER,
             )
         else:
             log.warning("No default display available for CSS provider")
