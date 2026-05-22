@@ -94,35 +94,35 @@ class MeliMainWindow(Adw.ApplicationWindow):
 
     def _build_sidebar(self) -> Gtk.Widget:
         sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        sidebar.add_css_class("meli-sidebar")
+        sidebar.add_css_class("hive-sidebar")
         sidebar.set_size_request(220, -1)
 
-        # Branding
-        brand_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-        brand_box.set_margin_top(20)
-        brand_box.set_margin_bottom(12)
-        brand_box.set_margin_start(16)
-        brand_box.set_margin_end(16)
+        # ── Brand row: M badge + "MELI" + "v2.7 hive" tagline ───────
+        brand_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        brand_row.set_margin_top(14)
+        brand_row.set_margin_bottom(16)
+        brand_row.set_margin_start(14)
+        brand_row.set_margin_end(14)
 
-        title = Gtk.Label(label="MELI")
-        title.add_css_class("title-2")
-        title.add_css_class("amber-accent")
-        title.set_halign(Gtk.Align.START)
+        badge = Gtk.Label(label="M")
+        badge.add_css_class("hive-brand-badge")
+        badge.set_size_request(36, 36)
+        brand_row.append(badge)
 
-        subtitle = Gtk.Label(label="Honeypot Command Center")
-        subtitle.add_css_class("caption")
-        subtitle.set_halign(Gtk.Align.START)
-        subtitle.set_opacity(0.6)
+        brand_text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
+        brand_text.set_valign(Gtk.Align.CENTER)
+        name = Gtk.Label(label="MELI")
+        name.add_css_class("hive-brand-name")
+        name.set_halign(Gtk.Align.START)
+        tag = Gtk.Label(label="V2.7  HIVE")
+        tag.add_css_class("hive-brand-tag")
+        tag.set_halign(Gtk.Align.START)
+        brand_text.append(name)
+        brand_text.append(tag)
+        brand_row.append(brand_text)
+        sidebar.append(brand_row)
 
-        brand_box.append(title)
-        brand_box.append(subtitle)
-        sidebar.append(brand_box)
-
-        sep = Gtk.Separator()
-        sep.set_margin_bottom(8)
-        sidebar.append(sep)
-
-        # Nav buttons
+        # ── Nav pills ──────────────────────────────────────────────
         self._nav_buttons: list[Gtk.ToggleButton] = []
         scroll = Gtk.ScrolledWindow()
         scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
@@ -132,19 +132,35 @@ class MeliMainWindow(Adw.ApplicationWindow):
         nav_box.set_margin_start(8)
         nav_box.set_margin_end(8)
 
-        for i, (label, icon, *_) in enumerate(_VIEWS):
+        # Glyphs match the mockup's monospace icon column.
+        _GLYPHS = {
+            "Dashboard": "▦", "Live Feed": "⌁", "Map": "◉",
+            "Attackers": "✦", "Credentials": "⛁", "Commands": "⚑",
+            "Payloads": "☷", "Services": "⛭", "Timeline": "▤",
+            "IP Reputation": "◆", "Botnets": "✺", "Alerts": "⚙",
+            "Reports": "▤", "Labyrinth": "✦", "Replay": "▶",
+            "Settings": "⛭",
+        }
+
+        for i, (label, _icon, *_rest) in enumerate(_VIEWS):
             btn = Gtk.ToggleButton()
+            btn.add_css_class("hive-nav-pill")
             btn.add_css_class("flat")
 
-            row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-            row.set_margin_start(8)
-            row.set_margin_top(4)
-            row.set_margin_bottom(4)
-            img = Gtk.Image.new_from_icon_name(icon)
+            row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+            row.set_margin_start(10)
+            row.set_margin_end(10)
+            row.set_margin_top(6)
+            row.set_margin_bottom(6)
+
+            glyph = Gtk.Label(label=_GLYPHS.get(label, "·"))
+            glyph.add_css_class("hive-nav-glyph")
+            glyph.set_size_request(16, -1)
             lbl = Gtk.Label(label=label)
+            lbl.add_css_class("hive-nav-label")
             lbl.set_halign(Gtk.Align.START)
             lbl.set_hexpand(True)
-            row.append(img)
+            row.append(glyph)
             row.append(lbl)
             btn.set_child(row)
 
@@ -156,26 +172,40 @@ class MeliMainWindow(Adw.ApplicationWindow):
         scroll.set_child(nav_box)
         sidebar.append(scroll)
 
-        # Lock button at bottom
-        sep2 = Gtk.Separator()
-        sep2.set_margin_top(8)
-        sidebar.append(sep2)
+        # ── Status pill (mockup: amber-dashed "All systems nominal") ─
+        status_pill = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        status_pill.add_css_class("hive-status-pill")
+        status_pill.set_margin_start(12)
+        status_pill.set_margin_end(12)
+        status_pill.set_margin_top(10)
+        status_pill.set_margin_bottom(8)
+        dot = Gtk.Label(label="●")
+        dot.add_css_class("hive-status-dot")
+        txt = Gtk.Label(label="All systems nominal")
+        txt.add_css_class("hive-status-text")
+        txt.set_halign(Gtk.Align.START)
+        txt.set_hexpand(True)
+        status_pill.append(dot)
+        status_pill.append(txt)
+        sidebar.append(status_pill)
 
-        # Atrium kiosk display — prominent gold button so it's
-        # discoverable. Same action as F12 / `meli --kiosk`.
+        # Atrium kiosk: kept reachable, restyled flat amber.
         atrium_btn = Gtk.Button(label="⚡  Launch Atrium")
-        atrium_btn.add_css_class("suggested-action")
-        atrium_btn.add_css_class("honey-accent")
+        atrium_btn.add_css_class("hive-atrium-btn")
         atrium_btn.set_tooltip_text(
             "Full-screen Labyrinth Atrium kiosk display  (F12)")
         atrium_btn.set_margin_start(12)
         atrium_btn.set_margin_end(12)
-        atrium_btn.set_margin_top(8)
+        atrium_btn.set_margin_top(4)
         atrium_btn.connect("clicked", lambda _: self._launch_atrium())
         sidebar.append(atrium_btn)
 
         lock_btn = Gtk.Button(label="Lock")
-        lock_btn.set_margin_all(12)
+        lock_btn.add_css_class("hive-lock-btn")
+        lock_btn.set_margin_start(12)
+        lock_btn.set_margin_end(12)
+        lock_btn.set_margin_top(4)
+        lock_btn.set_margin_bottom(12)
         lock_btn.connect("clicked", lambda _: self.show_lock_screen())
         sidebar.append(lock_btn)
 

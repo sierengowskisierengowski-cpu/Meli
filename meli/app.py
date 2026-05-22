@@ -140,7 +140,7 @@ class MeliApplication(Adw.Application):
         # secondary view. --kiosk launch also forces this on.
         open_atrium_on_unlock = (
             self._kiosk_pending_after_unlock
-            or cfg.get("atrium", "open_on_unlock", default=True)
+            or cfg.get("atrium", "open_on_unlock", default=False)
         )
         self._kiosk_pending_after_unlock = False
         if not open_atrium_on_unlock:

@@ -30,9 +30,11 @@ window.meli-window > * { color: @meli_pale_comb; }
 
 /* ── Sidebar (left nav) ──────────────────────────────────────────────── */
 
-.meli-sidebar {
-    background-color: alpha(@meli_comb_dark, 0.97);
-    border-right: 1px solid alpha(@meli_warm_border, 0.7);
+.meli-sidebar,
+.hive-sidebar {
+    background-color: alpha(@meli_comb_dark, 0.98);
+    border-right: 1px solid alpha(@meli_raw_honey, 0.22);
+    box-shadow: inset -1px 0 0 alpha(@meli_raw_honey, 0.14);
 }
 
 .meli-sidebar row:hover {
@@ -43,6 +45,106 @@ window.meli-window > * { color: @meli_pale_comb; }
     background-color: alpha(@meli_raw_honey, 0.18);
     color: @meli_beeswax;
     box-shadow: inset 3px 0 0 @meli_raw_honey;
+}
+
+/* ── Hive sidebar brand block ──────────────────────────────────── */
+.hive-brand-badge {
+    background-image: linear-gradient(135deg, #f0b829, #ff8c1a);
+    color: #1a0f04;
+    font-weight: 900;
+    font-size: 20px;
+    border-radius: 9px;
+    box-shadow: 0 0 16px alpha(@meli_raw_honey, 0.65);
+    min-width: 36px;
+    min-height: 36px;
+}
+.hive-brand-name {
+    color: @meli_pale_comb;
+    font-weight: 900;
+    font-size: 15px;
+    letter-spacing: 0.5px;
+}
+.hive-brand-tag {
+    color: @meli_raw_honey;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 2.6px;
+    opacity: 0.95;
+}
+
+/* ── Hive nav pills (mockup amber-on-black look) ───────────────── */
+.hive-nav-pill {
+    background: transparent;
+    border: none;
+    border-left: 2px solid transparent;
+    border-radius: 6px;
+    padding: 0;
+    min-height: 30px;
+    color: #c8b89e;
+    transition: background-color 120ms ease, color 120ms ease;
+}
+.hive-nav-pill:hover {
+    background-color: alpha(@meli_raw_honey, 0.10);
+    color: @meli_pale_comb;
+}
+.hive-nav-pill:checked,
+.hive-nav-pill:active {
+    background-image: linear-gradient(90deg,
+        alpha(@meli_raw_honey, 0.28) 0%,
+        alpha(@meli_raw_honey, 0.04) 100%);
+    border-left: 2px solid @meli_raw_honey;
+    color: @meli_pale_comb;
+    font-weight: 700;
+    box-shadow: inset 0 0 16px alpha(@meli_raw_honey, 0.14);
+}
+.hive-nav-glyph {
+    color: alpha(@meli_raw_honey, 0.75);
+    font-size: 13px;
+    font-family: monospace;
+}
+.hive-nav-pill:checked .hive-nav-glyph {
+    color: @meli_raw_honey;
+}
+.hive-nav-label {
+    font-size: 12px;
+}
+
+/* ── Status pill + sidebar buttons ─────────────────────────────── */
+.hive-status-pill {
+    background-color: alpha(@meli_raw_honey, 0.07);
+    border: 1px dashed alpha(@meli_raw_honey, 0.40);
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: @meli_raw_honey;
+    font-size: 10px;
+}
+.hive-status-dot {
+    color: #43e07a;
+    font-size: 8px;
+}
+.hive-status-text {
+    color: @meli_raw_honey;
+    font-size: 10px;
+}
+.hive-atrium-btn {
+    background-image: linear-gradient(135deg, #f0b829, #ff8c1a);
+    color: #1a0f04;
+    font-weight: 800;
+    border: none;
+    border-radius: 6px;
+    box-shadow: 0 0 12px alpha(@meli_raw_honey, 0.45);
+}
+.hive-atrium-btn:hover {
+    box-shadow: 0 0 18px alpha(@meli_raw_honey, 0.70);
+}
+.hive-lock-btn {
+    background-color: alpha(#ffffff, 0.04);
+    border: 1px solid alpha(@meli_raw_honey, 0.25);
+    color: @meli_pale_comb;
+    border-radius: 6px;
+}
+.hive-lock-btn:hover {
+    background-color: alpha(@meli_raw_honey, 0.12);
 }
 
 /* ── Header bar ──────────────────────────────────────────────────────── */
@@ -495,3 +597,174 @@ button.hive-pill-filter.sev-info.active {
     border-color: alpha(@meli_pale_comb, 0.50);
 }
 .mono { font-family: monospace; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   UNIVERSAL HIVE OVERRIDES — apply mockup amber-on-black to every
+   built-in widget so legacy views inherit the look without rewrites.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Window + content backdrop */
+window.meli-window,
+window.meli-window > * {
+    background-color: @meli_hive_black;
+}
+.meli-content-stack,
+stack.meli-content-stack > * {
+    background-color: @meli_hive_black;
+}
+
+/* Adw.PreferencesGroup → hive panel */
+preferencesgroup,
+preferencesgroup > box {
+    background-color: transparent;
+}
+preferencesgroup > box > label {
+    color: @meli_pale_comb;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+preferencesgroup > box > box.header > label.description {
+    color: alpha(@meli_pale_comb, 0.55);
+    font-size: 10px;
+    letter-spacing: 0.5px;
+}
+preferencesgroup list,
+preferencesgroup listbox {
+    background-image: linear-gradient(155deg,
+        alpha(@meli_comb_panel, 0.93) 0%,
+        alpha(@meli_comb_dark, 0.97) 100%);
+    border: 1px solid alpha(@meli_raw_honey, 0.25);
+    border-radius: 12px;
+    box-shadow: inset 0 1px 0 alpha(@meli_pale_comb, 0.04),
+                0 4px 18px rgba(0, 0, 0, 0.45);
+}
+
+/* Adw.ActionRow — comb-row look */
+row.activatable,
+row.activatable:hover,
+row.activatable:focus,
+row {
+    background-color: transparent;
+    color: @meli_pale_comb;
+}
+row > box.header > box.title > label.title {
+    color: @meli_pale_comb;
+    font-weight: 700;
+}
+row > box.header > box.title > label.subtitle {
+    color: alpha(@meli_pale_comb, 0.55);
+    font-family: monospace;
+    font-size: 11px;
+}
+row:hover {
+    background-color: alpha(@meli_raw_honey, 0.06);
+}
+row:selected {
+    background-image: linear-gradient(90deg,
+        alpha(@meli_raw_honey, 0.22) 0%,
+        alpha(@meli_raw_honey, 0.04) 100%);
+    color: @meli_pale_comb;
+    box-shadow: inset 3px 0 0 @meli_raw_honey;
+}
+listbox > row + row {
+    border-top: 1px solid alpha(@meli_raw_honey, 0.10);
+}
+
+/* Plain Gtk.ListBox + Gtk.Frame */
+frame {
+    background-image: linear-gradient(155deg,
+        alpha(@meli_comb_panel, 0.93) 0%,
+        alpha(@meli_comb_dark, 0.97) 100%);
+    border: 1px solid alpha(@meli_raw_honey, 0.22);
+    border-radius: 12px;
+    box-shadow: inset 0 1px 0 alpha(@meli_pale_comb, 0.04);
+}
+frame > border { border: none; }
+listbox {
+    background-color: transparent;
+    color: @meli_pale_comb;
+}
+
+/* Plain buttons inside views — keep readable on dark */
+button {
+    color: @meli_pale_comb;
+}
+button.flat:hover {
+    background-color: alpha(@meli_raw_honey, 0.10);
+}
+button.suggested-action,
+button.honey-accent {
+    background-image: linear-gradient(135deg, #f0b829, #ff8c1a);
+    color: #1a0f04;
+    font-weight: 800;
+    border: none;
+    box-shadow: 0 0 10px alpha(@meli_raw_honey, 0.40);
+}
+button.suggested-action:hover,
+button.honey-accent:hover {
+    box-shadow: 0 0 16px alpha(@meli_raw_honey, 0.65);
+}
+button.destructive-action {
+    background-color: alpha(@meli_sting_red, 0.20);
+    color: @meli_sting_red;
+    border: 1px solid alpha(@meli_sting_red, 0.55);
+}
+
+/* Adw.Banner — amber strip */
+banner > revealer > box {
+    background-image: linear-gradient(90deg,
+        alpha(@meli_raw_honey, 0.22),
+        alpha(@meli_raw_honey, 0.06));
+    color: @meli_pale_comb;
+    border-bottom: 1px solid alpha(@meli_raw_honey, 0.45);
+}
+
+/* Adw.StatusPage (empty states) — amber title */
+statuspage > scrolledwindow > viewport > box {
+    background-color: transparent;
+}
+statuspage label.title {
+    color: @meli_raw_honey;
+    letter-spacing: 1.2px;
+}
+statuspage label.description {
+    color: alpha(@meli_pale_comb, 0.55);
+}
+
+/* Entries + spinbuttons + dropdowns */
+entry, spinbutton, dropdown, combobox {
+    background-color: alpha(@meli_hive_black, 0.55);
+    color: @meli_pale_comb;
+    border: 1px solid alpha(@meli_raw_honey, 0.30);
+    border-radius: 6px;
+}
+entry:focus, spinbutton:focus, dropdown:focus, combobox:focus {
+    border-color: @meli_raw_honey;
+    box-shadow: 0 0 0 1px alpha(@meli_raw_honey, 0.45);
+}
+
+/* Notebooks (tabs in views like Settings) */
+notebook > header {
+    background-color: transparent;
+    border-bottom: 1px solid alpha(@meli_raw_honey, 0.22);
+}
+notebook > header tab {
+    color: alpha(@meli_pale_comb, 0.55);
+    background-color: transparent;
+    padding: 6px 14px;
+    border: none;
+}
+notebook > header tab:checked {
+    color: @meli_raw_honey;
+    box-shadow: inset 0 -2px 0 @meli_raw_honey;
+    font-weight: 700;
+}
+
+/* Adw.NavigationSplitView / sidebar split chrome */
+navigationsplitview > sidebar,
+navigationsplitview > content {
+    background-color: @meli_hive_black;
+}
