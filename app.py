@@ -119,18 +119,35 @@ class MeliApplication(Adw.Application):
 
     def on_post_unlock(self) -> None:
         """Hook called by MeliMainWindow after the lock screen clears.
-        Honors a pending --kiosk launch by opening the Atrium kiosk
-        window once the user has authenticated, and schedules a
-        background update check so a toast surfaces if there's a newer
-        release on GitHub."""
+        By default this now opens the LABYRINTH ATRIUM kiosk view as
+        the landing experience after login — the regular sidebar
+        dashboard remains accessible behind it (close the Atrium with
+        Esc / F11 / Ctrl+W to fall back to the operator console).
+
+        Override with `atrium.open_on_unlock = false` in
+        `~/.config/meli/config.yaml` if you prefer the old behaviour
+        of landing directly on the sidebar dashboard.
+
+        Also schedules a background update check so a toast surfaces
+        if there's a newer release on GitHub."""
         # Background updater check, ~12s after unlock so the dashboard
         # has time to paint first. Throttled by check_interval_hours.
         GLib.timeout_add_seconds(12, self._maybe_auto_check_updates)
 
-        if not self._kiosk_pending_after_unlock:
-            return
+        cfg = get_config()
+        # Default True — the user wanted the Atrium to *be* the app
+        # they see when they log in, not a hidden-behind-a-button
+        # secondary view. --kiosk launch also forces this on.
+        open_atrium_on_unlock = (
+            self._kiosk_pending_after_unlock
+            or cfg.get("atrium", "open_on_unlock", default=True)
+        )
         self._kiosk_pending_after_unlock = False
-        log.info("Lock cleared — opening Atrium for kiosk launch")
+        if not open_atrium_on_unlock:
+            log.info("Lock cleared — staying on sidebar dashboard "
+                     "(atrium.open_on_unlock = false)")
+            return
+        log.info("Lock cleared — opening LABYRINTH ATRIUM as landing view")
         # Defer one tick so the main window has finished its unlock
         # transition before we present a fullscreen child window.
         GLib.idle_add(lambda: (self._open_atrium(fullscreen=True), False)[1])

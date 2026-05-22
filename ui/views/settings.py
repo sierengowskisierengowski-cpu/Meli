@@ -9,6 +9,8 @@ from gi.repository import Gtk, Adw, GLib
 import threading
 import structlog
 
+from meli.ui.widgets import HiveHeader
+
 log = structlog.get_logger()
 
 
@@ -18,8 +20,9 @@ class SettingsView(Gtk.Box):
         self._build_ui()
 
     def _build_ui(self) -> None:
-        header = Adw.HeaderBar()
-        header.set_title_widget(Gtk.Label(label="Settings"))
+        header = HiveHeader(title="Settings",
+                            status_label="CONFIGURED",
+                            status_kind="configured")
         self.append(header)
 
         # Sidebar + content split

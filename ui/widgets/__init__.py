@@ -13,6 +13,7 @@ from meli.ui.widgets.charts import (
     BEESWAX,
     PALE_COMB,
 )
+from meli.ui.widgets.hive_header import HiveHeader
 
 __all__ = [
     "HoneyPotWidget",
@@ -21,6 +22,7 @@ __all__ = [
     "MiniBarChart",
     "HorizontalBars",
     "KpiTile",
+    "HiveHeader",
     "SEV_COLORS",
     "AMBER_GLOW",
     "RAW_HONEY",
