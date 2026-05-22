@@ -173,7 +173,9 @@ install_python_deps() {
 # ── Phase 4: Application files ────────────────────────────────────────────────
 install_app_files() {
     log "Phase 4: Copying application files to $INSTALL_DIR..."
-    
+    rsync -a --exclude=".git" --exclude="__pycache__" --exclude="*.pyc" \
+        --exclude=".venv" --exclude="venv" --exclude="dist" --exclude="build" \
+        "$APP_DIR/" "$INSTALL_DIR/app/"
     ok "Application files copied."
 
     log "Creating launcher script..."
@@ -221,24 +223,107 @@ install_desktop() {
 }
 
 # ── Phase 6: Systemd user services ───────────────────────────────────────────
+# Resolve the *invoking* user so that systemd --user calls target the right
+# DBUS session even when the installer was launched via `sudo`. If we are
+# already running as a normal user this collapses to ${USER}.
 install_services() {
     log "Phase 6: Installing systemd user services..."
-    mkdir -p "$SYSTEMD_USER"
+
+    # Resolve target user. Order of precedence:
+    #   1. --target-user=NAME on the command line (TARGET_USER env)
+    #   2. $SUDO_USER (set by `sudo`)
+    #   3. $PKEXEC_UID resolved via getent (set by `pkexec`)
+    #   4. $USER, only if NOT root (i.e. running unprivileged install)
+    # If none of those yield a real non-root account, bail loudly —
+    # silently installing user units into root's home is worse than
+    # failing fast (the operator would later wonder why nothing ingests).
+    local target_user=""
+    if [ -n "${TARGET_USER:-}" ]; then
+        target_user="$TARGET_USER"
+    elif [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ]; then
+        target_user="$SUDO_USER"
+    elif [ -n "${PKEXEC_UID:-}" ]; then
+        target_user="$(getent passwd "$PKEXEC_UID" | cut -d: -f1)"
+    elif [ "$(id -u)" != "0" ] && [ -n "${USER:-}" ] && [ "$USER" != "root" ]; then
+        target_user="$USER"
+    fi
+
+    if [ -z "$target_user" ] || [ "$target_user" = "root" ]; then
+        err "Cannot determine which user to install Meli's systemd units for."
+        err "When running as root directly (no sudo/pkexec), pass the target user explicitly:"
+        err "  sudo TARGET_USER=alice ./install.sh"
+        err "Or re-run via sudo as that user:"
+        err "  sudo -u alice ./install.sh   (won't work — needs privilege; use 'sudo' from alice's shell instead)"
+        exit 1
+    fi
+
+    if ! getent passwd "$target_user" >/dev/null; then
+        err "Target user '$target_user' does not exist on this system."
+        exit 1
+    fi
+
+    local target_home
+    target_home="$(getent passwd "$target_user" | cut -d: -f6)"
+    if [ -z "$target_home" ] || [ ! -d "$target_home" ]; then
+        err "Target user '$target_user' has no valid home directory."
+        exit 1
+    fi
+    local target_systemd="$target_home/.config/systemd/user"
+    local target_uid
+    target_uid="$(id -u "$target_user")"
+
+    install -d -o "$target_user" -g "$target_user" -m 700 "$target_systemd"
 
     if [ -f "$APP_DIR/meli.service" ]; then
-        cp "$APP_DIR/meli.service" "$SYSTEMD_USER/meli.service"
+        install -o "$target_user" -g "$target_user" -m 644 \
+            "$APP_DIR/meli.service" "$target_systemd/meli.service"
     fi
     if [ -f "$APP_DIR/meli-ingest.service" ]; then
-        cp "$APP_DIR/meli-ingest.service" "$SYSTEMD_USER/meli-ingest.service"
+        install -o "$target_user" -g "$target_user" -m 644 \
+            "$APP_DIR/meli-ingest.service" "$target_systemd/meli-ingest.service"
+    fi
+    # Labyrinth daily-digest timer (v2.0). Service is oneshot; timer
+    # fires daily at 07:00. Operator can `systemctl --user disable
+    # meli-labyrinth-digest.timer` to opt out without removing files.
+    if [ -f "$APP_DIR/meli-labyrinth-digest.service" ]; then
+        install -o "$target_user" -g "$target_user" -m 644 \
+            "$APP_DIR/meli-labyrinth-digest.service" \
+            "$target_systemd/meli-labyrinth-digest.service"
+    fi
+    if [ -f "$APP_DIR/meli-labyrinth-digest.timer" ]; then
+        install -o "$target_user" -g "$target_user" -m 644 \
+            "$APP_DIR/meli-labyrinth-digest.timer" \
+            "$target_systemd/meli-labyrinth-digest.timer"
     fi
 
-    systemctl --user daemon-reload 2>/dev/null || true
+    # Re-enter the target user's DBUS session before calling systemctl --user.
+    # When the script is run via sudo, this script's own systemctl --user
+    # would target root's session bus (which isn't usually running) and
+    # silently fail to enable the units.
+    run_as_user() {
+        if [ "$(id -un)" = "$target_user" ]; then
+            "$@"
+        else
+            sudo -u "$target_user" \
+                XDG_RUNTIME_DIR="/run/user/$target_uid" \
+                DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$target_uid/bus" \
+                "$@"
+        fi
+    }
 
-    # Enable and start ingest daemon (runs without display)
-    systemctl --user enable meli-ingest.service 2>/dev/null || warn "Could not enable meli-ingest.service (systemd user session may not be active yet)"
-    systemctl --user start meli-ingest.service 2>/dev/null || warn "Could not start meli-ingest.service — start it manually: systemctl --user start meli-ingest"
+    run_as_user systemctl --user daemon-reload 2>/dev/null || \
+        warn "systemctl --user daemon-reload failed — run it once logged in as $target_user."
+    run_as_user systemctl --user enable meli-ingest.service 2>/dev/null || \
+        warn "Could not enable meli-ingest.service — run: systemctl --user enable meli-ingest.service"
+    run_as_user systemctl --user start meli-ingest.service 2>/dev/null || \
+        warn "Could not start meli-ingest.service — run: systemctl --user start meli-ingest.service"
+    # Enable the digest timer (the .service is triggered by the timer, not enabled directly).
+    if [ -f "$target_systemd/meli-labyrinth-digest.timer" ]; then
+        run_as_user systemctl --user enable --now meli-labyrinth-digest.timer 2>/dev/null || \
+            warn "Could not enable meli-labyrinth-digest.timer — run: systemctl --user enable --now meli-labyrinth-digest.timer"
+    fi
 
-    ok "Systemd user services installed."
+    ok "Systemd user services installed for $target_user."
 }
 
 # ── Phase 7: Mosquitto setup ──────────────────────────────────────────────────
