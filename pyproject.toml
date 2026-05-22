@@ -1,0 +1,71 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "meli"
+version = "2.7.1"
+description = "Honeypot Command Center — Real-time threat intelligence dashboard for honeypot infrastructure"
+authors = [{ name = "Joseph Sierengowski" }]
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.12"
+keywords = ["honeypot", "security", "threat-intelligence", "gtk4", "monitoring"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: X11 Applications :: GTK",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Topic :: System :: Monitoring",
+]
+dependencies = [
+    "PyGObject>=3.46.0",
+    "paho-mqtt>=2.0.0",
+    "requests>=2.31.0",
+    "aiohttp>=3.9.0",
+    "SQLAlchemy>=2.0.0",
+    "alembic>=1.13.0",
+    "bcrypt>=4.1.0",
+    "cryptography>=42.0.0",
+    "pyotp>=2.9.0",
+    "geoip2>=4.8.0",
+    "maxminddb>=2.5.0",
+    "reportlab>=4.1.0",
+    "Markdown>=3.5.0",
+    "Jinja2>=3.1.0",
+    "Pillow>=10.2.0",
+    "watchdog>=4.0.0",
+    "psutil>=5.9.0",
+    "click>=8.1.0",
+    "structlog>=24.1.0",
+    "PyYAML>=6.0.1",
+    "websockets>=12.0",
+    "python-dateutil>=2.9.0",
+    "httpx>=0.27.0",
+    "paramiko>=3.4.0",
+]
+
+[project.scripts]
+meli = "meli.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/sierengowski/meli"
+Repository = "https://github.com/sierengowski/meli"
+Issues = "https://github.com/sierengowski/meli/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["meli*"]
+
+[tool.setuptools.package-data]
+meli = [
+    "classification/default_rules.yaml",
+    "reports/templates/*.j2",
+    "resources/css/*.css",
+    "resources/svg/*.svg",
+    "resources/sounds/*",
+    "assets/**/*",
+]

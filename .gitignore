@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.Python
+pip-wheel-metadata/
+*.whl
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Meli runtime data
+*.db
+*.db-shm
+*.db-wal
+meli.log
+*.log
+
+# Compiled / packaged
+meli/meli.data/
+*.tar.gz
+*.tar.zst
+*.pkg.tar.*
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# mypy / ruff
+.mypy_cache/
+.ruff_cache/
+
+# Secrets / local config overrides
+config.local.yaml
+secrets.yaml
