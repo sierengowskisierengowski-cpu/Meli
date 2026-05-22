@@ -15,7 +15,11 @@ from meli import __version__
               help="Enable debug logging")
 @click.option("--reset-auth", is_flag=True, default=False,
               help="Reset authentication (emergency recovery)")
-def main(daemon: str | None, debug: bool, reset_auth: bool) -> None:
+@click.option("--kiosk", is_flag=True, default=False,
+              help="Launch directly into the fullscreen Labyrinth Atrium "
+                   "display (wall-mounted monitor mode)")
+def main(daemon: str | None, debug: bool, reset_auth: bool,
+         kiosk: bool) -> None:
     """Meli — Honeypot Command Center"""
     import structlog
     from meli.utils.logger import setup_logging
@@ -36,9 +40,9 @@ def main(daemon: str | None, debug: bool, reset_auth: bool) -> None:
         return
 
     # GUI launch
-    log.info("Starting Meli GUI", version=__version__)
+    log.info("Starting Meli GUI", version=__version__, kiosk=kiosk)
     from meli.app import MeliApplication
-    app = MeliApplication()
+    app = MeliApplication(kiosk=kiosk)
     sys.exit(app.run(sys.argv[:1]))
 
 

@@ -31,6 +31,8 @@ _VIEWS = [
     ("Botnets",      "network-workgroup-symbolic",   "meli.ui.views.botnet_detection","BotnetView"),
     ("Alerts",       "notification-symbolic",        "meli.ui.views.alert_rules",    "AlertRulesView"),
     ("Reports",      "document-send-symbolic",       "meli.ui.views.reports",        "ReportsView"),
+    ("Labyrinth",    "drive-multidisk-symbolic",     "meli.ui.views.labyrinth_sessions", "LabyrinthSessionsView"),
+    ("Replay",       "media-playback-start-symbolic","meli.ui.views.labyrinth_replay",   "LabyrinthReplayView"),
     ("Settings",     "preferences-system-symbolic",  "meli.ui.views.settings",       "SettingsView"),
 ]
 
@@ -54,7 +56,6 @@ class MeliMainWindow(Adw.ApplicationWindow):
         self._view_instances: dict[str, Gtk.Widget] = {}
         self._lock_overlay: Gtk.Widget | None = None
         self._idle_timer: int | None = None
-        self._idle_minutes: int = 0
 
         self._build_ui()
         self._register_shortcuts()
@@ -156,12 +157,43 @@ class MeliMainWindow(Adw.ApplicationWindow):
         sep2.set_margin_top(8)
         sidebar.append(sep2)
 
+        # Atrium kiosk display — prominent gold button so it's
+        # discoverable. Same action as F12 / `meli --kiosk`.
+        atrium_btn = Gtk.Button(label="⚡  Launch Atrium")
+        atrium_btn.add_css_class("suggested-action")
+        atrium_btn.add_css_class("honey-accent")
+        atrium_btn.set_tooltip_text(
+            "Full-screen Labyrinth Atrium kiosk display  (F12)")
+        atrium_btn.set_margin_start(12)
+        atrium_btn.set_margin_end(12)
+        atrium_btn.set_margin_top(8)
+        atrium_btn.connect("clicked", lambda _: self._launch_atrium())
+        sidebar.append(atrium_btn)
+
         lock_btn = Gtk.Button(label="Lock")
         lock_btn.set_margin_all(12)
         lock_btn.connect("clicked", lambda _: self.show_lock_screen())
         sidebar.append(lock_btn)
 
         return sidebar
+
+    def _launch_atrium(self) -> None:
+        """Open the Atrium kiosk window via the app-level action."""
+        app = self.get_application()
+        if app is None:
+            return
+        try:
+            # Prefer the app's own helper so window-lifecycle tracking
+            # stays single-sourced. Fall back to direct construction
+            # if the app isn't a MeliApplication (e.g. tests).
+            opener = getattr(app, "_open_atrium", None)
+            if callable(opener):
+                opener()
+                return
+            from meli.ui.atrium import AtriumWindow
+            AtriumWindow(application=app, fullscreen=True).present()
+        except Exception as e:
+            log.error("Atrium launch failed", error=str(e))
 
     # ── Navigation ────────────────────────────────────────────────────────────
 

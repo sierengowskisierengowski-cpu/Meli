@@ -130,6 +130,38 @@ DEFAULTS: dict[str, Any] = {
         "window_maximized": False,
         "sidebar_width": 220,
     },
+    "splash": {
+        "enabled": True,
+        "sound_enabled": True,
+    },
+    "atrium": {
+        # Full-screen kiosk display for wall-mounted monitors.
+        # Launch via the sidebar button, `Ctrl+F12`, or `meli --kiosk`.
+        "audio_enabled": True,
+        "audio_volume": 0.7,
+        # If True, --kiosk launches *without* showing the lock screen
+        # first (for unattended wall-display boxes where the master
+        # password lives in a sealed envelope, not at the keyboard).
+        "bypass_lock_in_kiosk_mode": False,
+    },
+    "labyrinth": {
+        # Opt-in: starting a tarpit on a real interface should always
+        # be a deliberate choice, never a side-effect of installing.
+        "enabled": False,
+        "bind_host": "0.0.0.0",
+        "bind_port": 2323,
+        "max_sessions": 200,
+        # Taunt personality: "off" / "subtle" / "full".
+        # full = HA HA gotcha banners on login + tripwires + exit (default).
+        # subtle = only on disconnect + destructive-command tripwires.
+        # off = silent tarpit, looks like a real (slow) box.
+        "taunt_intensity": "full",
+        # SSH listener (paramiko). Independent of the telnet bind — you
+        # can run either, both, or neither. Host key is auto-generated
+        # at ~/.local/share/meli/labyrinth/host_rsa_key on first start.
+        "ssh_enabled": False,
+        "ssh_bind_port": 2222,
+    },
 }
 
 
