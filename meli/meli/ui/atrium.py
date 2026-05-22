@@ -1150,7 +1150,7 @@ class AtriumScene(Gtk.Overlay):
         except Exception:
             pass
         # Chain shutdown to every child widget that owns timers
-        for child in (self._aurora, self._radar, self._terminal,
+        for child in (self._bg, self._radar, self._terminal,
                       self._heatmap, self._clock, self._flash):
             try:
                 fn = getattr(child, "shutdown", None)
