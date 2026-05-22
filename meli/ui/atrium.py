@@ -281,10 +281,22 @@ class AuroraBackground(Gtk.DrawingArea):
     def __init__(self):
         super().__init__()
         self._phase = random.random() * math.tau
+        self._closing = False
+        self._timeouts: list[int] = []
         self.set_draw_func(self._draw)
-        GLib.timeout_add(int(1000 / FPS_AURORA), self._tick)
+        self._timeouts.append(
+            GLib.timeout_add(int(1000 / FPS_AURORA), self._tick))
+
+    def shutdown(self) -> None:
+        self._closing = True
+        for t in self._timeouts:
+            try: GLib.source_remove(t)
+            except Exception: pass
+        self._timeouts.clear()
 
     def _tick(self) -> bool:
+        if self._closing:
+            return False
         # ~28-second cycle, matches the GodsApp aurora cadence
         self._phase = (self._phase + (math.tau / (FPS_AURORA * 28))) % math.tau
         self.queue_draw()
@@ -351,8 +363,18 @@ class RadarScope(Gtk.DrawingArea):
         self._sweep_angle = 0.0
         self._blips: deque[_Blip] = deque(maxlen=120)
         self._last_frame = time.monotonic()
+        self._closing = False
+        self._timeouts: list[int] = []
         self.set_draw_func(self._draw)
-        GLib.timeout_add(int(1000 / FPS_RADAR), self._tick)
+        self._timeouts.append(
+            GLib.timeout_add(int(1000 / FPS_RADAR), self._tick))
+
+    def shutdown(self) -> None:
+        self._closing = True
+        for t in self._timeouts:
+            try: GLib.source_remove(t)
+            except Exception: pass
+        self._timeouts.clear()
 
     def add_event(self, source_ip: str, severity: str = "INFO",
                   label: str = "") -> None:
@@ -378,6 +400,8 @@ class RadarScope(Gtk.DrawingArea):
                                  label or source_ip))
 
     def _tick(self) -> bool:
+        if self._closing:
+            return False
         now = time.monotonic()
         dt = now - self._last_frame
         self._last_frame = now
@@ -541,11 +565,21 @@ class TerminalStream(Gtk.DrawingArea):
         self.set_vexpand(True)
         self._lines: deque[_TermLine] = deque(maxlen=self.MAX_LINES)
         self._scanline_phase = 0.0
+        self._closing = False
+        self._timeouts: list[int] = []
         self.set_draw_func(self._draw)
-        GLib.timeout_add(int(1000 / FPS_TERMINAL), self._tick)
+        self._timeouts.append(
+            GLib.timeout_add(int(1000 / FPS_TERMINAL), self._tick))
         # Banner on launch
         self.push("LABYRINTH ATRIUM v1.0   READY", kind="system")
         self.push("subscribing to event stream...", kind="info")
+
+    def shutdown(self) -> None:
+        self._closing = True
+        for t in self._timeouts:
+            try: GLib.source_remove(t)
+            except Exception: pass
+        self._timeouts.clear()
 
     def push(self, text: str, kind: str = "info") -> None:
         color = _TERM_COLORS.get(kind, DIM_WHITE)
@@ -643,18 +677,31 @@ class HeatmapBar(Gtk.DrawingArea):
         self._counts = [0] * self.BINS
         self._max = 1
         self._inflight = False
+        self._closing = False
+        self._timeouts: list[int] = []
         self.set_draw_func(self._draw)
         # Refresh now, then every 60s
         GLib.idle_add(self._refresh_async)
-        GLib.timeout_add(60_000, lambda: (self._refresh_async() or True))
-        GLib.timeout_add(int(1000 / FPS_HEATMAP), self._tick)
+        self._timeouts.append(
+            GLib.timeout_add(60_000, lambda: (self._refresh_async() or True)))
+        self._timeouts.append(
+            GLib.timeout_add(int(1000 / FPS_HEATMAP), self._tick))
+
+    def shutdown(self) -> None:
+        self._closing = True
+        for t in self._timeouts:
+            try: GLib.source_remove(t)
+            except Exception: pass
+        self._timeouts.clear()
 
     def _tick(self) -> bool:
+        if self._closing:
+            return False
         self.queue_draw()
         return True
 
     def _refresh_async(self) -> bool:
-        if self._inflight:
+        if self._inflight or self._closing:
             return False
         self._inflight = True
 
@@ -698,6 +745,8 @@ class HeatmapBar(Gtk.DrawingArea):
 
     def _apply(self, counts) -> bool:
         self._inflight = False
+        if self._closing:
+            return False
         self._counts = counts
         self._max = max(1, max(counts) if counts else 1)
         return False
@@ -772,20 +821,36 @@ class HeatmapBar(Gtk.DrawingArea):
 class ClockBar(Gtk.DrawingArea):
     def __init__(self):
         super().__init__()
-        self.set_content_height(48)
+        # v2.3.0: bar grew from 48→66 to fit the persistent authorization
+        # notice line (drawn below the title). Required disclosure for
+        # always-on kiosk operation.
+        self.set_content_height(66)
         self.set_hexpand(True)
         self._pulse_phase = 0.0
         self._total_events = 0
         self._active_sessions = 0
+        self._closing = False
+        self._timeouts: list[int] = []
         self.set_draw_func(self._draw)
-        GLib.timeout_add(int(1000 / FPS_CLOCK), self._tick)
-        GLib.timeout_add(10_000, self._refresh_stats)
+        self._timeouts.append(
+            GLib.timeout_add(int(1000 / FPS_CLOCK), self._tick))
+        self._timeouts.append(
+            GLib.timeout_add(10_000, self._refresh_stats))
         self._refresh_stats()
+
+    def shutdown(self) -> None:
+        self._closing = True
+        for t in self._timeouts:
+            try: GLib.source_remove(t)
+            except Exception: pass
+        self._timeouts.clear()
 
     def set_active_sessions(self, n: int) -> None:
         self._active_sessions = int(n)
 
     def _refresh_stats(self) -> bool:
+        if self._closing:
+            return False
         def _work():
             try:
                 from meli.database import get_session
@@ -802,10 +867,14 @@ class ClockBar(Gtk.DrawingArea):
         return True
 
     def _apply_stats(self, total: int) -> bool:
+        if self._closing:
+            return False
         self._total_events = total
         return False
 
     def _tick(self) -> bool:
+        if self._closing:
+            return False
         self._pulse_phase = (self._pulse_phase + 0.08) % math.tau
         self.queue_draw()
         return True
@@ -827,17 +896,28 @@ class ClockBar(Gtk.DrawingArea):
         cr.select_font_face("Sans", cairo.FONT_SLANT_NORMAL,
                             cairo.FONT_WEIGHT_BOLD)
         cr.set_font_size(20)
-        cr.move_to(20, 31)
+        cr.move_to(20, 26)
         cr.show_text("MELI · LABYRINTH ATRIUM")
 
-        # Center: clock
+        # v2.3.0: persistent authorization notice below the title.
+        # Always visible so anyone walking past the kiosk knows this
+        # display is monitoring authorized infrastructure only.
+        cr.set_source_rgba(*DIM_WHITE, 0.72)
+        cr.select_font_face("Sans", cairo.FONT_SLANT_NORMAL,
+                            cairo.FONT_WEIGHT_NORMAL)
+        cr.set_font_size(11)
+        cr.move_to(20, 52)
+        cr.show_text("\u26a0  Monitoring authorized infrastructure only "
+                     "\u2014 see DISCLAIMER.md")
+
+        # Center: clock (vertically centered between title and auth line)
         cr.set_source_rgb(*PALE_COMB)
         cr.select_font_face("Monospace", cairo.FONT_SLANT_NORMAL,
                             cairo.FONT_WEIGHT_BOLD)
         cr.set_font_size(22)
         ts = datetime.now(timezone.utc).strftime("%Y-%m-%d  %H:%M:%S UTC")
         ex = cr.text_extents(ts)
-        cr.move_to(w / 2 - ex.width / 2, 32)
+        cr.move_to(w / 2 - ex.width / 2, 36)
         cr.show_text(ts)
 
         # Right: LIVE indicator + counters
@@ -940,19 +1020,23 @@ class AtriumScene(Gtk.Overlay):
         self._flash = _FlashOverlay()
         self.add_overlay(self._flash)
 
+        # Lifecycle tracking
+        self._closing = False
+        self._timeouts: list[int] = []
+
         # Wire event bus
         event_bus.subscribe("event.ingested", self._on_ingested)
 
         # Periodic refresh of stats that don't come over the bus
         self._poll_stats()
-        GLib.timeout_add(5_000, self._poll_stats)
+        self._timeouts.append(GLib.timeout_add(5_000, self._poll_stats))
 
         # Periodic synthetic seed so the display has movement even on
         # a fresh install with zero traffic. ONE blip every 12s, very
         # dim, just so the radar doesn't look broken. Disabled if any
         # real event has arrived in the last 5 min.
         self._last_real_event = 0.0
-        GLib.timeout_add(12_000, self._idle_seed)
+        self._timeouts.append(GLib.timeout_add(12_000, self._idle_seed))
 
     def _frame_widget(self, child: Gtk.Widget, hexpand_basis: float) -> Gtk.Widget:
         f = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -981,6 +1065,8 @@ class AtriumScene(Gtk.Overlay):
         GLib.idle_add(self._handle_ingested, dict(payload or {}))
 
     def _handle_ingested(self, payload):
+        if self._closing:
+            return False
         self._last_real_event = time.monotonic()
         sev = (payload.get("severity") or "INFO").upper()
         ip = payload.get("source_ip") or "?"
@@ -1018,6 +1104,8 @@ class AtriumScene(Gtk.Overlay):
         sticky roster. Runs on the main loop but the queries are cheap
         (just a count) — if they ever get expensive we'll move to a
         thread."""
+        if self._closing:
+            return False
         def _work():
             total = 0
             trapped = 0
@@ -1042,6 +1130,8 @@ class AtriumScene(Gtk.Overlay):
         return True
 
     def _apply_stats(self, total: int, trapped: int) -> bool:
+        if self._closing:
+            return False
         self._pot.set_event_count(total)
         self._clock.set_active_sessions(trapped)
         return False
@@ -1050,6 +1140,8 @@ class AtriumScene(Gtk.Overlay):
         """If no real events in the last 5 min, drop one very-dim blip
         so the radar always has at least *something* to look at. Doesn't
         play audio, doesn't pulse the pot."""
+        if self._closing:
+            return False
         if time.monotonic() - self._last_real_event < 300:
             return True
         # Random ghost IP — clearly not real (uses TEST-NET-1 range)
@@ -1058,10 +1150,28 @@ class AtriumScene(Gtk.Overlay):
         return True
 
     def shutdown(self) -> None:
+        if self._closing:
+            return
+        self._closing = True
+        # Stop our own scene-level timers
+        for t in self._timeouts:
+            try: GLib.source_remove(t)
+            except Exception: pass
+        self._timeouts.clear()
+        # Unsubscribe from the event bus
         try:
             event_bus.unsubscribe("event.ingested", self._on_ingested)
         except Exception:
             pass
+        # Chain shutdown to every child widget that owns timers
+        for child in (self._bg, self._radar, self._terminal,
+                      self._heatmap, self._clock, self._flash):
+            try:
+                fn = getattr(child, "shutdown", None)
+                if callable(fn):
+                    fn()
+            except Exception:
+                pass
 
 
 class _FlashOverlay(Gtk.DrawingArea):
@@ -1076,8 +1186,17 @@ class _FlashOverlay(Gtk.DrawingArea):
         self._started = 0.0
         self._duration = 0.0
         self._intensity = 0.0
+        self._closing = False
+        self._timeouts: list[int] = []
         self.set_draw_func(self._draw)
-        GLib.timeout_add(33, self._tick)
+        self._timeouts.append(GLib.timeout_add(33, self._tick))
+
+    def shutdown(self) -> None:
+        self._closing = True
+        for t in self._timeouts:
+            try: GLib.source_remove(t)
+            except Exception: pass
+        self._timeouts.clear()
 
     def flash(self, color: tuple, intensity: float = 0.4,
               duration: float = 0.85) -> None:
@@ -1129,10 +1248,11 @@ class AtriumWindow(Adw.ApplicationWindow):
         self._scene.set_audio_volume(audio_volume)
         self.set_content(self._scene)
 
-        # No decorations, no titlebar — pure scene
+        # No decorations, no titlebar — pure scene.
+        # Adw.ApplicationWindow already has no traditional titlebar; this
+        # also strips the resize/close chrome on tiling/floating WMs.
         try:
-            empty = Gtk.Label()
-            self.set_titlebar = getattr(self, "set_titlebar", None)  # noop
+            self.set_decorated(False)
         except Exception:
             pass
 
@@ -1143,10 +1263,12 @@ class AtriumWindow(Adw.ApplicationWindow):
 
         # Cursor auto-hide
         self._cursor_last_move = time.monotonic()
+        self._closing = False
+        self._cursor_timeout: int | None = None
         motion = Gtk.EventControllerMotion()
         motion.connect("motion", self._on_motion)
         self.add_controller(motion)
-        GLib.timeout_add(500, self._cursor_check)
+        self._cursor_timeout = GLib.timeout_add(500, self._cursor_check)
 
         # Close cleanup
         self.connect("close-request", self._on_close)
@@ -1188,6 +1310,8 @@ class AtriumWindow(Adw.ApplicationWindow):
             pass
 
     def _cursor_check(self) -> bool:
+        if self._closing:
+            return False
         if time.monotonic() - self._cursor_last_move > CURSOR_HIDE_SECONDS:
             try:
                 blank = Gdk.Cursor.new_from_name("none", None)
@@ -1198,6 +1322,11 @@ class AtriumWindow(Adw.ApplicationWindow):
         return True
 
     def _on_close(self, *_):
+        self._closing = True
+        if self._cursor_timeout is not None:
+            try: GLib.source_remove(self._cursor_timeout)
+            except Exception: pass
+            self._cursor_timeout = None
         try:
             self._scene.shutdown()
         except Exception:

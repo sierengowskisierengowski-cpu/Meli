@@ -1,6 +1,9 @@
 """
 Meli first-run setup wizard.
-Steps: Welcome → Password → 2FA → Honeypot → API Keys → GeoIP → Complete
+Steps: Welcome → Authorization → Password → 2FA → Honeypot → API Keys → GeoIP → Complete
+
+The Authorization step (added in v2.3.0) ensures the operator
+explicitly acknowledges DISCLAIMER.md before Meli will start ingesting.
 """
 from __future__ import annotations
 
@@ -13,11 +16,30 @@ from gi.repository import Gtk, Adw, GLib, GObject  # noqa: E402
 import structlog
 from meli.auth import set_master_password, setup_totp, confirm_totp_setup
 from meli.config import get_config
+from meli import eula
 
 log = structlog.get_logger()
 
-_STEPS = ["Welcome", "Password", "2FA (Optional)", "First Honeypot",
-          "API Keys (Optional)", "GeoIP", "Complete"]
+_STEPS = [
+    "Welcome",
+    "Authorization",
+    "Password",
+    "2FA (Optional)",
+    "First Honeypot",
+    "API Keys (Optional)",
+    "GeoIP",
+    "Complete",
+]
+
+# Step indices — single source of truth so reordering is obvious.
+_STEP_WELCOME       = 0
+_STEP_AUTHORIZATION = 1
+_STEP_PASSWORD      = 2
+_STEP_2FA           = 3
+_STEP_HONEYPOT      = 4
+_STEP_API           = 5
+_STEP_GEOIP         = 6
+_STEP_COMPLETE      = 7
 
 
 class SetupWizard(Adw.Window):
@@ -28,8 +50,8 @@ class SetupWizard(Adw.Window):
     def __init__(self, **kwargs) -> None:
         super().__init__(
             title="Meli Setup",
-            default_width=600,
-            default_height=500,
+            default_width=640,
+            default_height=560,
             modal=True,
             **kwargs,
         )
@@ -43,15 +65,16 @@ class SetupWizard(Adw.Window):
         self._carousel.set_allow_scroll_wheel(False)
         self._carousel.set_interactive(False)
 
-        # Build all pages
+        # Build all pages in step-order.
         self._pages = [
-            self._page_welcome(),
-            self._page_password(),
-            self._page_2fa(),
-            self._page_honeypot(),
-            self._page_api_keys(),
-            self._page_geoip(),
-            self._page_complete(),
+            self._page_welcome(),         # 0
+            self._page_authorization(),   # 1
+            self._page_password(),        # 2
+            self._page_2fa(),             # 3
+            self._page_honeypot(),        # 4
+            self._page_api_keys(),        # 5
+            self._page_geoip(),           # 6
+            self._page_complete(),        # 7
         ]
         for page in self._pages:
             self._carousel.append(page)
@@ -98,6 +121,68 @@ class SetupWizard(Adw.Window):
         desc.set_wrap(True)
         box.append(title)
         box.append(desc)
+        return box
+
+    def _page_authorization(self) -> Gtk.Widget:
+        """Authorization step — operator must acknowledge DISCLAIMER.md
+        before any data collection begins. Required (v2.3.0+)."""
+        box = self._centered_box()
+
+        title = Gtk.Label(label="Authorization & Intended Use")
+        title.add_css_class("title-1")
+        title.add_css_class("amber-accent")
+
+        notice = Gtk.Label(label=(
+            "Meli is built for defensive security research, monitoring,\n"
+            "and education on systems and networks that you own or are\n"
+            "explicitly authorized to operate.\n\n"
+            "You — the operator — are solely responsible for ensuring\n"
+            "your use of this software is lawful in your jurisdiction\n"
+            "and authorized for the systems you point it at.\n\n"
+            "Do NOT use this software to monitor networks you do not own,\n"
+            "surveil others without consent, or scan, probe, or exploit\n"
+            "systems without explicit written authorization."
+        ))
+        notice.set_justify(Gtk.Justification.CENTER)
+        notice.set_wrap(True)
+
+        # Pointer to full text — install layout puts DISCLAIMER.md beside
+        # README.md, both in the source tree and in /opt/meli.
+        link = Gtk.Label()
+        link.set_markup(
+            "<small>Full text: "
+            "<a href='https://github.com/sierengowskisierengowski-cpu/Meli/blob/main/DISCLAIMER.md'>"
+            "DISCLAIMER.md</a></small>"
+        )
+        link.set_halign(Gtk.Align.CENTER)
+
+        self._eula_check = Gtk.CheckButton(label=(
+            "I acknowledge the Authorization & Intended Use notice and "
+            "I will only operate Meli against systems and networks I own "
+            "or am explicitly authorized to monitor."
+        ))
+        self._eula_check.set_halign(Gtk.Align.CENTER)
+        # Toggling re-evaluates the Next button enabled state.
+        self._eula_check.connect("toggled", lambda _b: self._refresh_next_enabled())
+
+        self._eula_status = Gtk.Label(label="")
+        self._eula_status.add_css_class("caption")
+        self._eula_status.set_opacity(0.7)
+
+        # If acknowledgment already exists on disk (re-running the wizard),
+        # pre-tick the box so the user isn't re-prompted unnecessarily.
+        try:
+            rec = eula.get_record()
+            if rec and rec.get("accepted"):
+                self._eula_check.set_active(True)
+                self._eula_status.set_text(
+                    f"Previously acknowledged: {rec.get('accepted_at', '')}"
+                )
+        except Exception as e:
+            log.debug("eula precheck failed", error=str(e))
+
+        for w in [title, notice, link, self._eula_check, self._eula_status]:
+            box.append(w)
         return box
 
     def _page_password(self) -> Gtk.Widget:
@@ -250,15 +335,28 @@ class SetupWizard(Adw.Window):
         self._step = step
         self._carousel.scroll_to(self._pages[step], True)
         self._back_btn.set_visible(step > 0)
-        is_last = step == len(_STEPS) - 1
+        is_last = step == _STEP_COMPLETE
         self._next_btn.set_label("Launch Meli" if is_last else "Next")
+        # Special: Authorization step gates Next on the checkbox.
+        if step == _STEP_AUTHORIZATION:
+            self._next_btn.set_label("I Agree →")
+        self._refresh_next_enabled()
+
+    def _refresh_next_enabled(self) -> None:
+        if self._step == _STEP_AUTHORIZATION:
+            self._next_btn.set_sensitive(
+                getattr(self, "_eula_check", None) is not None
+                and self._eula_check.get_active()
+            )
+        else:
+            self._next_btn.set_sensitive(True)
 
     def _on_next(self, _) -> None:
         if not self._validate_current_step():
             return
         self._save_current_step()
 
-        if self._step == len(_STEPS) - 1:
+        if self._step == _STEP_COMPLETE:
             self.emit("wizard-complete")
             self.close()
         else:
@@ -269,7 +367,13 @@ class SetupWizard(Adw.Window):
             self._show_step(self._step - 1)
 
     def _validate_current_step(self) -> bool:
-        if self._step == 1:  # Password
+        if self._step == _STEP_AUTHORIZATION:
+            if not self._eula_check.get_active():
+                self._eula_status.set_text(
+                    "You must acknowledge the notice to continue."
+                )
+                return False
+        elif self._step == _STEP_PASSWORD:
             pw1 = self._pw1.get_text()
             pw2 = self._pw2.get_text()
             if len(pw1) < 12:
@@ -285,15 +389,26 @@ class SetupWizard(Adw.Window):
 
     def _save_current_step(self) -> None:
         cfg = get_config()
-        if self._step == 1:
+
+        if self._step == _STEP_AUTHORIZATION:
+            try:
+                rec = eula.accept()
+                log.info("EULA accepted", at=rec.get("accepted_at"))
+                self._eula_status.set_text(
+                    f"Acknowledged · {rec.get('accepted_at', '')}"
+                )
+            except Exception as e:
+                log.warning("eula write failed", error=str(e))
+
+        elif self._step == _STEP_PASSWORD:
             set_master_password(self._pw1.get_text())
 
-        elif self._step == 2 and self._enable_2fa.get_active():
+        elif self._step == _STEP_2FA and self._enable_2fa.get_active():
             code = self._totp_verify_row.get_text()
             if code:
                 confirm_totp_setup(code)
 
-        elif self._step == 3:
+        elif self._step == _STEP_HONEYPOT:
             hp_name = self._hp_name.get_text()
             if hp_name:
                 hp_type_idx = self._hp_type.get_selected()
@@ -308,7 +423,7 @@ class SetupWizard(Adw.Window):
                     db.add(Honeypot(name=hp_name, honeypot_type=hp_type,
                                     ingest_method=method, ingest_token=generate_token()))
 
-        elif self._step == 4:
+        elif self._step == _STEP_API:
             for key_name, row in [
                 ("abuseipdb", self._api_abuse), ("greynoise", self._api_gn),
                 ("virustotal", self._api_vt), ("shodan", self._api_shodan),
@@ -318,7 +433,7 @@ class SetupWizard(Adw.Window):
                     cfg.set("enrichment", "services", key_name, "api_key", val)
                     cfg.set("enrichment", "services", key_name, "enabled", True)
 
-        elif self._step == 5:
+        elif self._step == _STEP_GEOIP:
             key = self._maxmind_key.get_text()
             if key:
                 cfg.set("enrichment", "maxmind_license_key", key)
@@ -365,5 +480,5 @@ class SetupWizard(Adw.Window):
         box.set_hexpand(True)
         box.set_vexpand(True)
         box.set_margin_all(40)
-        box.set_size_request(500, -1)
+        box.set_size_request(520, -1)
         return box

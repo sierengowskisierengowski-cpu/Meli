@@ -2,6 +2,54 @@
 
 All notable changes to Meli are documented here.
 
+## [2.3.0] — 2026-05-22
+
+### Added — Authorization & Intended Use
+
+- **New mandatory wizard step: Authorization** (`meli/ui/setup_wizard.py`).
+  Inserted between **Welcome** and **Password** so the operator must
+  explicitly acknowledge `DISCLAIMER.md` before any data is ingested.
+  The Next button (relabelled **I Agree →**) stays disabled until the
+  checkbox is ticked. Acknowledgments are timestamped, recorded with
+  the local user/host, and persisted to `~/.config/meli/eula.json`
+  (mode 0600) by the new `meli.eula` module. Re-running the wizard
+  pre-ticks the box and shows the prior acceptance timestamp.
+
+- **Persistent authorization notice on the Labyrinth Atrium kiosk**
+  (`meli/ui/atrium.py`). The `ClockBar` grew 48→66 px and now
+  permanently renders **"⚠ Monitoring authorized infrastructure
+  only — see DISCLAIMER.md"** beneath the title in a dim-white 11 px
+  face. Designed to be readable from across a room so anyone walking
+  past a wall-mounted Pi kiosk sees the operating context.
+
+- **`meli.eula` module** (new, stdlib-only). API: `is_accepted()`,
+  `accept(version)`, `get_record()`. Honors `MELI_CONFIG_DIR` for
+  packaged/sandboxed installs.
+
+### Changed — Visual polish
+
+- **Honeycomb pattern tiled across the main window**
+  (`meli/resources/css/style.css`). The same hex-cell SVG used on the
+  splash now repeats over `window.meli-window` at 3.5% opacity so the
+  hive motif reads at any zoom level. Zero perceptible perf cost —
+  it's a single inline 56×48 data-URI SVG.
+
+- **Wizard window size** bumped 600×500 → 640×560 to give the
+  Authorization step's longer copy room to breathe without scrolling.
+
+### Notes
+
+- No DB migration required.
+- `meli.auth` (master password + TOTP) is unchanged — `meli.eula` is
+  intentionally a separate module: acceptance is a one-time
+  legal/operational acknowledgment, not an authentication factor.
+- Existing installs: the wizard re-runs only on first launch; for
+  already-configured installs you can record acknowledgment manually
+  by writing `~/.config/meli/eula.json` or simply re-running the
+  wizard from Settings.
+
+---
+
 ## [1.0.0] — 2025-05-20
 
 ### Initial Release
