@@ -343,6 +343,12 @@ class SetupWizard(Adw.Window):
         self._refresh_next_enabled()
 
     def _refresh_next_enabled(self) -> None:
+        # Guard: _page_authorization() may toggle _eula_check during
+        # _build_ui() — i.e. *before* _next_btn is constructed. Skip
+        # silently in that window; _show_step() re-runs this once the
+        # nav row exists, so there's no missed update.
+        if not hasattr(self, "_next_btn"):
+            return
         if self._step == _STEP_AUTHORIZATION:
             self._next_btn.set_sensitive(
                 getattr(self, "_eula_check", None) is not None
