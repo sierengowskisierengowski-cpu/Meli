@@ -122,30 +122,38 @@ def _try_play_sound() -> subprocess.Popen | None:
     return None
 
 
-class SplashScreen(Adw.Window):
-    """Modal undecorated window that plays the startup animation.
+class SplashOverlay(Gtk.Box):
+    """Splash animation as a Gtk.Overlay child on the main window.
+
+    Fills the entire main window with a solid opaque background so
+    no UI behind it (lock screen, dashboard, etc.) shows through.
+    The honey-pot animation is drawn centered at its native CANVAS_W
+    x CANVAS_H size; the rest of the window stays the gradient bg.
 
     Usage:
-        splash = SplashScreen(application=app)
+        splash = SplashOverlay()
         splash.connect("splash-finished", lambda *_: on_done())
-        splash.present()
+        overlay.add_overlay(splash)   # on top of lock screen
     """
 
     __gsignals__ = {
         "splash-finished": (GObject.SignalFlags.RUN_FIRST, None, ()),
     }
 
-    def __init__(self, application: Adw.Application | None = None, **kwargs) -> None:
-        super().__init__(application=application, **kwargs)
-        self.set_title("Meli")
-        self.set_default_size(CANVAS_W, CANVAS_H)
-        self.set_resizable(False)
-        self.set_decorated(False)
-        self.set_modal(True)
+    def __init__(self) -> None:
+        super().__init__(orientation=Gtk.Orientation.VERTICAL)
         try:
             self.add_css_class("meli-splash")
         except Exception:
             pass
+        # Fill the full main window so we are one cohesive screen.
+        self.set_hexpand(True)
+        self.set_vexpand(True)
+        self.set_halign(Gtk.Align.FILL)
+        self.set_valign(Gtk.Align.FILL)
+        # Eat all input while the splash is up.
+        self.set_can_target(True)
+        self.set_focusable(True)
 
         self._start_ms: int | None = None
         self._finished = False
@@ -164,17 +172,16 @@ class SplashScreen(Adw.Window):
             wobble = rng.uniform(0.0, 2 * math.pi)
             self._drops.append(_Drop(x_frac * CANVAS_W, start, min(end, DROP_END_MS), size, wobble))
 
+        # Single drawing area that paints fullscreen — it expands to
+        # fill the entire main window and we draw the animation
+        # centered inside it on a solid background.
         self._area = Gtk.DrawingArea()
-        self._area.set_content_width(CANVAS_W)
-        self._area.set_content_height(CANVAS_H)
-        self._area.set_draw_func(self._on_draw)
-        self.set_content(self._area)
+        self._area.set_hexpand(True)
+        self._area.set_vexpand(True)
+        self._area.set_draw_func(self._on_draw_fullscreen)
+        self.append(self._area)
 
         self.connect("map", self._on_mapped)
-        self.connect("close-request", self._on_close_request)
-        # Catch every shutdown path (app.quit, WM kill, destroy) so we
-        # never leave a GLib timeout firing into a destroyed widget or
-        # an audio player orphaned in the background.
         self.connect("unmap", self._cleanup)
         self.connect("destroy", self._cleanup)
 
@@ -182,16 +189,10 @@ class SplashScreen(Adw.Window):
 
     def _on_mapped(self, *_args) -> None:
         if self._start_ms is not None:
-            return  # already started; defensive against double-map
+            return  # defensive against double-map
         self._start_ms = int(time.monotonic() * 1000)
         self._sound_proc = _try_play_sound()
         self._tick_source = GLib.timeout_add(FRAME_MS, self._on_tick)
-
-    def _on_close_request(self, *_args) -> bool:
-        # The splash plays through — refuse explicit close attempts until
-        # the animation is complete. After that, allow it (so the platform
-        # close-on-finish path works too).
-        return not self._finished
 
     def _on_tick(self) -> bool:
         if self._start_ms is None:
@@ -208,18 +209,30 @@ class SplashScreen(Adw.Window):
             return
         self._finished = True
         self._stop_tick()
+        # Emit synchronously so the parent removes us from the overlay
+        # before we cleanup; cleanup is also idempotent if the overlay
+        # remove triggers our unmap/destroy signals.
         try:
             self.emit("splash-finished")
-        finally:
-            # Defer close so any handlers connected to the signal run first.
-            GLib.idle_add(self._safe_close)
+        except Exception as e:
+            log.debug("splash-finished emit failed", error=str(e))
 
-    def _safe_close(self) -> bool:
-        try:
-            self.close()
-        except Exception:
-            pass
-        return False
+    def _on_draw_fullscreen(self, area: Gtk.DrawingArea, ctx: cairo.Context, w: int, h: int) -> None:
+        # Paint the whole window opaque first (no peek-through to the
+        # lock screen or dashboard behind us).
+        ctx.save()
+        ctx.set_source_rgb(*HIVE_BLACK)
+        ctx.rectangle(0, 0, w, h)
+        ctx.fill()
+        ctx.restore()
+        # Then run the original animation, translated so the CANVAS_W
+        # x CANVAS_H scene is centered inside the (likely larger) window.
+        off_x = max(0, (w - CANVAS_W) // 2)
+        off_y = max(0, (h - CANVAS_H) // 2)
+        ctx.save()
+        ctx.translate(off_x, off_y)
+        self._on_draw(area, ctx, CANVAS_W, CANVAS_H)
+        ctx.restore()
 
     def _stop_tick(self) -> None:
         if self._tick_source is not None:

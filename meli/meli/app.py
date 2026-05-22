@@ -77,13 +77,10 @@ class MeliApplication(Adw.Application):
             splash_enabled = cfg.get("splash", "enabled", default=True)
 
             if splash_enabled:
-                from meli.ui.splash_screen import SplashScreen
-                splash = SplashScreen(
-                    application=app,
-                    transient_for=self._main_window,
-                )
-                splash.connect("splash-finished", lambda *_: self._after_splash())
-                splash.present()
+                # Splash now runs as an overlay inside the main window
+                # so it looks like one cohesive screen instead of a
+                # floating modal hovering over the lock veil.
+                self._main_window.show_splash(self._after_splash)
             else:
                 self._post_splash_flow()
         else:

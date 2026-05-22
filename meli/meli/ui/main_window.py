@@ -253,6 +253,32 @@ class MeliMainWindow(Adw.ApplicationWindow):
         lock_session()
         log.info("Lock screen shown")
 
+    # ── Splash overlay ────────────────────────────────────────────────────────
+    def show_splash(self, on_done) -> None:
+        """Run the startup splash inside this window's overlay so it
+        looks like one cohesive screen instead of a floating modal."""
+        from meli.ui.splash_screen import SplashOverlay
+        if getattr(self, "_splash_overlay", None):
+            return
+        splash = SplashOverlay()
+        self._splash_overlay = splash
+
+        def _finish(*_):
+            try:
+                self._overlay.remove_overlay(splash)
+            except Exception as e:
+                log.debug("Splash overlay remove failed", error=str(e))
+            self._splash_overlay = None
+            try:
+                on_done()
+            except Exception as e:
+                log.warning("Post-splash callback raised", error=str(e))
+
+        splash.connect("splash-finished", _finish)
+        # add_overlay puts it on top — above the lock screen veil.
+        self._overlay.add_overlay(splash)
+        log.info("Splash overlay shown")
+
     def _on_unlocked(self, lock_screen: Gtk.Widget) -> None:
         self._overlay.remove_overlay(lock_screen)
         self._lock_overlay = None
