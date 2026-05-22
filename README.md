@@ -10,6 +10,29 @@ A native **GTK4 + libadwaita** Linux desktop application for real-time honeypot 
 
 ---
 
+## ⚠️ Authorization, Intended Use & Legal Notice
+
+Meli is a **defensive-security and home-lab tool.** It is designed to be run by its operator against their own infrastructure — their own honeypots, their own network, their own devices, their own lab environment. That is the only use it is designed, intended, or supported for.
+
+**Intended for:**
+- Monitoring honeypots and decoy services you have deployed on infrastructure you control.
+- Capturing, analyzing, and visualizing traffic, devices, and activity on networks you own or administer.
+- Threat-intelligence enrichment, alerting, reporting, and visualization for your own security monitoring.
+
+**Not for:**
+- Monitoring, capturing, or analyzing traffic on networks you do not own or are not explicitly authorized to monitor.
+- Surveilling, tracking, or profiling other people, their devices, or their communications without their knowledge and consent.
+- Scanning, probing, exploiting, or accessing any system you do not own or have explicit written authorization to test.
+- Any activity that violates applicable local, state, federal, or international law.
+
+**Your responsibility:** You — the operator — are solely responsible for ensuring your use of this software is lawful in your jurisdiction and authorized for the systems and networks you point it at. Laws governing network monitoring, packet capture, and wireless interception vary significantly by location. **When in doubt, don't** — get written authorization first, or limit the tool to infrastructure you unambiguously own.
+
+**No warranty.** This software is provided "as is." The author is not liable for any misuse or for any damages arising from its use. Use entirely at your own risk.
+
+Full notice: [**DISCLAIMER.md**](./DISCLAIMER.md). MIT license applies separately (see `LICENSE`).
+
+---
+
 ## Features
 
 ### 14 Dashboard Views
