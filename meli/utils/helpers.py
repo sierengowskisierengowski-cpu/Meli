@@ -7,15 +7,6 @@ import ipaddress
 from datetime import datetime, timezone
 from typing import Any
 
-_PRIVATE_NETWORKS = [
-    ipaddress.ip_network("10.0.0.0/8"),
-    ipaddress.ip_network("172.16.0.0/12"),
-    ipaddress.ip_network("192.168.0.0/16"),
-    ipaddress.ip_network("127.0.0.0/8"),
-    ipaddress.ip_network("::1/128"),
-    ipaddress.ip_network("fc00::/7"),
-]
-
 
 def utcnow() -> datetime:
     return datetime.now(timezone.utc)
@@ -48,10 +39,8 @@ def is_valid_ip(ip: str) -> bool:
 
 
 def is_private_ip(ip: str) -> bool:
-    """Return True for RFC 1918, loopback, and link-local addresses only."""
     try:
-        addr = ipaddress.ip_address(ip)
-        return addr.is_loopback or addr.is_link_local or any(addr in net for net in _PRIVATE_NETWORKS)
+        return ipaddress.ip_address(ip).is_private
     except ValueError:
         return False
 

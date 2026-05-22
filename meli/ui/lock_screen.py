@@ -21,11 +21,39 @@ class LockScreen(Gtk.Box):
         "unlocked": (GObject.SignalFlags.RUN_FIRST, None, ()),
     }
 
+    _CSS_INSTALLED = False
+
     def __init__(self) -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
+        # Fully opaque veil — without this the main window's content
+        # (dashboard data, hit feeds, etc.) shows through the overlay
+        # before the user has authenticated.
         self.add_css_class("background")
+        self.add_css_class("meli-lock-veil")
         self.set_hexpand(True)
         self.set_vexpand(True)
+        self.set_halign(Gtk.Align.FILL)
+        self.set_valign(Gtk.Align.FILL)
+        # Block all pointer/keyboard interaction with widgets behind.
+        self.set_can_target(True)
+        self.set_focusable(True)
+
+        if not LockScreen._CSS_INSTALLED:
+            provider = Gtk.CssProvider()
+            provider.load_from_data(
+                b".meli-lock-veil { background-color: #0b0b10; }"
+            )
+            display = self.get_display() if hasattr(self, "get_display") else None
+            try:
+                from gi.repository import Gdk
+                Gtk.StyleContext.add_provider_for_display(
+                    Gdk.Display.get_default(),
+                    provider,
+                    Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
+                )
+                LockScreen._CSS_INSTALLED = True
+            except Exception as e:
+                log.debug("Could not install lock-veil CSS", error=str(e))
 
         self._totp_required = is_totp_enabled()
         self._shake_pending = False

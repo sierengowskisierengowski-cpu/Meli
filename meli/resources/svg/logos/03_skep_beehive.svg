@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 280" width="220" height="280">
+  <title>Meli logo — Skep Beehive</title>
+  <defs>
+    <linearGradient id="sk_body" x1="0" y1="80" x2="0" y2="240" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#e6b347"/>
+      <stop offset="0.5" stop-color="#d4a017"/>
+      <stop offset="1" stop-color="#8a5d05"/>
+    </linearGradient>
+    <radialGradient id="sk_glow" cx="110" cy="160" r="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#d4a017" stop-opacity="0.20"/>
+      <stop offset="1" stop-color="#d4a017" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <circle cx="110" cy="160" r="120" fill="url(#sk_glow)"/>
+  <!-- Skep dome silhouette: stacked coils widening downward -->
+  <path d="M 70 80 Q 80 75 110 75 Q 140 75 150 80 L 188 240 L 32 240 Z"
+        fill="url(#sk_body)" stroke="#3a2818" stroke-width="2.4"/>
+  <!-- Coil bands (the woven straw effect) -->
+  <g stroke="#3a2818" stroke-width="1.8" fill="none" opacity="0.85">
+    <path d="M 78 100 Q 110 95 142 100"/>
+    <path d="M 72 122 Q 110 116 148 122"/>
+    <path d="M 66 144 Q 110 138 154 144"/>
+    <path d="M 60 166 Q 110 160 160 166"/>
+    <path d="M 54 188 Q 110 182 166 188"/>
+    <path d="M 48 210 Q 110 204 172 210"/>
+    <path d="M 42 230 Q 110 224 178 230"/>
+  </g>
+  <!-- Lighter coil highlights (woven texture) -->
+  <g stroke="#fde68a" stroke-width="0.6" fill="none" opacity="0.30">
+    <path d="M 78 98 Q 110 93 142 98"/>
+    <path d="M 72 120 Q 110 114 148 120"/>
+    <path d="M 66 142 Q 110 136 154 142"/>
+    <path d="M 60 164 Q 110 158 160 164"/>
+    <path d="M 54 186 Q 110 180 166 186"/>
+    <path d="M 48 208 Q 110 202 172 208"/>
+  </g>
+  <!-- Crown top knot -->
+  <ellipse cx="110" cy="76" rx="14" ry="6" fill="#8a5d05" stroke="#3a2818" stroke-width="1.6"/>
+  <!-- Entrance hole at bottom -->
+  <ellipse cx="110" cy="232" rx="14" ry="8" fill="#100a04" stroke="#3a2818" stroke-width="1.6"/>
+  <!-- A single bee in flight -->
+  <g transform="translate(170 130)">
+    <ellipse cx="0" cy="0" rx="6" ry="3.5" fill="#fde68a" stroke="#3a2818" stroke-width="0.8"/>
+    <line x1="-2" y1="-3" x2="-2" y2="3" stroke="#3a2818" stroke-width="0.8"/>
+    <line x1="2" y1="-3" x2="2" y2="3" stroke="#3a2818" stroke-width="0.8"/>
+    <ellipse cx="-1" cy="-4" rx="4" ry="2.5" fill="#fef3c7" opacity="0.7"/>
+    <ellipse cx="1" cy="-4" rx="4" ry="2.5" fill="#fef3c7" opacity="0.7"/>
+  </g>
+  <!-- Honey drip below entrance -->
+  <path d="M 109 240 Q 108 250 110 256 Q 112 250 111 240 Z" fill="#d4a017"/>
+  <circle cx="110" cy="256" r="3.5" fill="#d4a017"/>
+</svg>

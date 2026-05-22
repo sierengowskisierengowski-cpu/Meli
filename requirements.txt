@@ -53,3 +53,6 @@ websockets>=12.0
 # Utilities
 python-dateutil>=2.9.0
 packaging>=24.0
+
+# SSH server for Labyrinth tarpit
+paramiko>=3.4.0

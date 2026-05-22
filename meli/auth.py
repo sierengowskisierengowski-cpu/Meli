@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import json
 import time
-import os
 import structlog
 from pathlib import Path
 from dataclasses import dataclass, field
@@ -34,9 +33,6 @@ class AuthState:
 
 
 def _auth_file() -> Path:
-    config_dir = os.environ.get("MELI_CONFIG_DIR")
-    if config_dir:
-        return Path(config_dir) / "auth.db"
     cfg = get_config()
     return cfg.config_dir / "auth.db"
 
@@ -54,7 +50,6 @@ def _load_auth_store() -> dict:
 
 def _save_auth_store(data: dict) -> None:
     p = _auth_file()
-    p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(data))
     p.chmod(0o600)
 
