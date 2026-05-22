@@ -2,6 +2,53 @@
 
 All notable changes to Meli are documented here.
 
+## [2.5.0] — 2026-05-22
+
+### Changed — Splash screen redesigned (fullscreen honey splat)
+
+- **`meli/ui/splash_screen.py`** rewritten end-to-end. Animation now
+  scales to fill the entire main window (previously a fixed
+  640x420 canvas was letterboxed inside the window with black bars).
+  Total duration extended from 6.5s to 9.0s for a less rushed feel.
+
+  New phase sequence:
+    - 0.0–0.8s   Dark hold (anticipation)
+    - 0.6–1.4s   SPLAT: a huge irregular honey blob slams onto the top
+                 of the screen, splatter droplets radiate outward; the
+                 splat sound lands on the impact frame.
+    - 1.0–4.5s   Four thick honey ropes drip down from the splat
+                 underside, lengthening with gravity, accumulating
+                 heavy teardrop bulbs at their tips.
+    - 4.0–6.0s   MELI wordmark materializes directly beneath the four
+                 drip tips (the drips "wrote" the name).
+    - 6.0–7.0s   Subtitle ("honey trap command center") fades in.
+    - 7.0–8.2s   Hold so the user can read it.
+    - 8.2–9.0s   Fade to black, emit `splash-finished`.
+
+  Visual primitives: 14-lobe Bezier splat ring with deterministic
+  radial jitter and gooey wobble; radial vignette to focus the eye;
+  22 splatter droplets with gravity-arc trajectories; 3-segment
+  Bezier drip ropes with halo + gradient body + highlight stripe +
+  pear-shaped teardrop bulb at the tip; wordmark scales with window
+  (min 48px, up to 13% of `min(w, h)`) with amber glow + pale sheen.
+
+  Contract unchanged: same `Gtk.Box` widget, same `splash-finished`
+  GObject signal, same `splash.enabled` / `splash.sound_enabled`
+  config knobs.
+
+### Added — Multi-resolution PNG icons for desktop integration
+
+- **`assets/icons/meli-{16,32,48,64,128,256,512}.png`** rendered from
+  `meli.svg` at every size `install.sh` looks for. Previously only
+  the SVG existed, so on most desktops the icon copy step in
+  `install.sh` Phase 5 silently skipped every size, leaving the
+  application launcher and taskbar showing a generic placeholder.
+  With the PNGs in place, `install.sh` now installs them into
+  `/usr/share/icons/hicolor/{size}x{size}/apps/meli.png`, the
+  `meli.desktop` launcher picks them up automatically via
+  `Icon=meli`, and `gtk-update-icon-cache` re-indexes them so the
+  honey-pot icon appears in app menus, taskbars, and on the desktop.
+
 ## [2.4.0] — 2026-05-22
 
 ### Added — In-app auto-updater
