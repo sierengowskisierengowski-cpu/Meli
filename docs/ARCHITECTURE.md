@@ -1,63 +1,73 @@
 # Meli Architecture
 
+**v2.2.2**
+
 ## Overview
 
 Meli is split into two independent processes:
 
-1. **`meli-ingest` daemon** — runs as a systemd user service, receives events 24/7
-2. **`meli` GUI** — GTK4 desktop application, reads the database and shows the live MQTT feed
+1. **`meli-ingest` daemon** — runs as a systemd user service; receives and processes events 24/7
+2. **`meli` GUI** — GTK4 desktop application; reads the database and subscribes to the processed MQTT feed
 
 The two processes communicate only through:
 - The **SQLite database** (ingest writes, GUI reads)
 - **MQTT** (ingest publishes processed events, GUI subscribes for the live feed)
 
-This means the GUI is completely optional — your honeypot data is captured and classified even when you close the window.
+This means the GUI is completely optional — your honeypot data is captured, classified, enriched, and alerted even when you close the window.
 
 ## Component Map
 
 ```
-External
-  Honeypots
-     │
-     │ JSON events via MQTT (meli/events/ingest)
-     │ or HTTP POST (:17654/api/v1/events/ingest)
-     ▼
-┌─────────────────────────────────────────────────┐
-│             INGEST DAEMON                        │
-│                                                  │
-│  daemon.py                                       │
-│    ├── MqttHandler  (paho-mqtt consumer)         │
-│    └── _IngestHTTPHandler  (stdlib HTTPServer)   │
-│                                                  │
-│  processor.py  (event pipeline)                  │
-│    ├── Parser selection  → parsers/              │
-│    ├── Classification    → classification/       │
-│    ├── Geolocation       → enrichment/geo        │
-│    ├── DB store          → database/             │
-│    ├── Async enrichment  → enrichment/ (thread)  │
-│    ├── Alert evaluation  → alerts/engine         │
-│    └── Publish processed → MQTT (meli/events/processed)
-└─────────────────────────────────────────────────┘
-                     │              │
-            SQLite DB │              │ MQTT
-                     │              │
-┌─────────────────────────────────────────────────┐
-│              GTK4 GUI                            │
-│                                                  │
-│  app.py  (Adw.Application)                       │
-│    ├── SetupWizard  (first run)                  │
-│    ├── MeliMainWindow                            │
-│    │     ├── LockScreen                          │
-│    │     ├── Sidebar navigation                  │
-│    │     └── Stack of 14 views                   │
-│    └── CSS theming + global shortcuts            │
-└─────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│  External Honeypots (Cowrie / Heralding / Dionaea / …)           │
+│  → JSON events via MQTT (meli/events/ingest)                     │
+│  → or HTTP POST (:17654/api/v1/events/ingest)                    │
+└──────────────────────────┬───────────────────────────────────────┘
+                          │
+┌──────────────────────────▼───────────────────────────────────────┐
+│  Labyrinth Tarpit  (meli/labyrinth/)                              │
+│  SSH listener (paramiko / thread pool)                            │
+│  Telnet listener (asyncio)                                        │
+│  → emits Cowrie-format events → same ingest pipeline below        │
+└──────────────────────────┬───────────────────────────────────────┘
+                          │
+┌──────────────────────────▼───────────────────────────────────────┐
+│                    INGEST DAEMON                                   │
+│                                                                    │
+│  daemon.py                                                         │
+│    ├── MqttHandler  (paho-mqtt consumer)                          │
+│    └── _IngestHTTPHandler  (stdlib HTTPServer)                    │
+│                                                                    │
+│  processor.py  (event pipeline)                                   │
+│    ├── Parser selection  → ingest/parsers/                        │
+│    ├── Classification    → classification/                        │
+│    ├── Geolocation       → enrichment/geo                        │
+│    ├── DB store          → database/                              │
+│    ├── Async enrichment  → enrichment/ (thread)                  │
+│    ├── Alert evaluation  → alerts/engine                          │
+│    └── Publish processed → MQTT (meli/events/processed)          │
+└──────────────────────────┬───────────────────────────────────────┘
+                          │              │
+                 SQLite DB │              │ MQTT
+                          │              │
+┌──────────────────────────▼──────────────▼───────────────────────┐
+│                       GTK4 GUI                                    │
+│                                                                   │
+│  app.py  (Adw.Application)                                        │
+│    ├── SetupWizard  (first run)                                   │
+│    ├── MeliMainWindow                                             │
+│    │     ├── LockScreen                                           │
+│    │     ├── Sidebar navigation                                   │
+│    │     └── Stack of 16 views                                   │
+│    ├── CSS theming + global shortcuts                             │
+│    └── [opt] AtriumScene  (lazily imported on --kiosk / F12)     │
+└───────────────────────────────────────────────────────────────────┘
 ```
 
 ## Data Flow: Incoming Event
 
 ```
-1. Honeypot publishes JSON to MQTT topic `meli/events/ingest`
+1. Honeypot (or Labyrinth tarpit) publishes JSON to MQTT topic `meli/events/ingest`
            OR sends HTTP POST to :17654/api/v1/events/ingest
 
 2. parser   → Normalise to internal format
@@ -84,7 +94,7 @@ External
               GUI live feed picks this up immediately.
 ```
 
-## Database Schema (12 tables)
+## Database Schema (14 tables)
 
 | Table | Purpose |
 |-------|---------|
@@ -133,6 +143,34 @@ Cache key format: `{service}:{ip}` (e.g. `abuseipdb:1.2.3.4`).
 
 The full composite result is also cached under `full:{ip}` to avoid redundant parallel calls on page refreshes.
 
+## Labyrinth Tarpit Architecture
+
+The Labyrinth daemon (`LabyrinthDaemon`) manages two independent listeners:
+
+- **SSH** — paramiko on a bounded thread pool (`SSHListener`). One OS thread per connection, capped by a semaphore. All accepted passwords are logged. Sessions run the same command dispatch loop as Telnet.
+- **Telnet** — asyncio. One coroutine per connection, all sharing a single event loop in a dedicated background thread.
+
+Both share:
+- `FakeFS` — per-session fake filesystem, procedurally seeded so each session sees a slightly different tree
+- `commands.py` — 74 fake shell command handlers (duck-typed session interface)
+- `taunts.py` — configurable reveal (off / subtle / full)
+- `sink.py` — bounded worker pool that converts session events to Cowrie-format events and submits them to Meli's standard `process_event` pipeline
+
+Key Labyrinth subsystems:
+
+| Module | Purpose |
+|--------|---------|
+| `botdetect.py` | Weighted bot-vs-human score (0–100) per session |
+| `canary.py` | Bait files; fires CRITICAL alert on read |
+| `tripwire.py` | Regex rules that bump score + severity on hostile commands |
+| `replay.py` | Per-session JSONL recorder (append-only, per-session 2 MiB cap, 200 MiB global cap) |
+| `replay_export.py` | Asciinema-format export |
+| `polaroid.py` | Auto-posts one-line session summary to notification channels |
+| `cohort.py` | Command-sequence fingerprint clustering |
+| `sticky.py` | Cross-restart IP roster |
+| `blocklist.py` | Firewall-rule export (fail2ban / iptables / nftables / ufw / CIDR) |
+| `digest.py` | Daily 24h Markdown + PDF summary |
+
 ## GTK4 / libadwaita UI
 
 - `MeliApplication` (Adw.Application) — registers CSS, sets up actions
@@ -140,6 +178,7 @@ The full composite result is also cached under `full:{ip}` to avoid redundant pa
 - Views are loaded lazily via `importlib.import_module()` on first navigation
 - All DB queries run in background threads, results posted back via `GLib.idle_add()`
 - The live feed subscribes directly to MQTT in a daemon thread; events are posted to the list via `GLib.idle_add()`
+- Atrium (`atrium.py`) is lazily imported only when the kiosk mode is invoked; it adds zero overhead to normal operation
 
 ## Keyboard Shortcuts
 
@@ -149,12 +188,14 @@ The full composite result is also cached under `full:{ip}` to avoid redundant pa
 | Ctrl+Q | Quit |
 | Ctrl+, | Open Settings |
 | Ctrl+R | Refresh current view |
+| F12 | Open / close Atrium kiosk |
 | 1–9 | Switch to view by number |
 
 ## Security Boundaries
 
-- The master password is **never stored in plaintext**. It is bcrypt-hashed for verification.
-- API keys are encrypted at rest using Fernet (AES-128-CBC) with a key derived from the master password via Argon2id (64MB memory, 3 iterations).
+- The master password is **never stored in plaintext**. It is bcrypt-hashed for verification and used to derive the Fernet encryption key via Argon2id (64MB memory, 3 iterations).
+- API keys are encrypted at rest using Fernet (AES-128-CBC).
 - The SQLite database and config file are created with `chmod 600`.
 - The config directory is `chmod 700`.
 - Ingest tokens for honeypots are stored in the database (not in config) and are only readable after successful authentication.
+

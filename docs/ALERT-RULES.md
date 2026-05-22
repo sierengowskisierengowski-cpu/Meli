@@ -31,7 +31,7 @@ In Meli → Alert Rules → New Rule:
 **Fields:**
 - **Name** — descriptive name shown in notifications and history
 - **Minimum Severity** — only fire if event severity is at or above this threshold
-- **Notification Channels** — comma-separated: `desktop`, `discord`, `slack`, `telegram`, `email`, `webhook`, `sound`
+- **Notification Channels** — comma-separated: `desktop`, `discord`, `slack`, `telegram`, `email`, `webhook`
 - **Cooldown** — minimum seconds between firings for this rule (prevents spam)
 - **Active Hours** — optional time window (`HH:MM` format, supports midnight-wrapping)
 - **Conditions** — JSON array of conditions (see below)
@@ -112,12 +112,13 @@ Configure channels in Settings → Alerts & Notifications.
 | Channel | Config Key | Notes |
 |---------|-----------|-------|
 | `desktop` | — | Uses `notify-send` via libnotify |
-| `sound` | `sound_enabled`, `per_severity_sounds` | Requires PipeWire/ALSA + ogg files |
 | `discord` | `discord_webhook` | Webhook URL from Discord server settings |
 | `slack` | `slack_webhook` | Incoming Webhook app URL |
 | `telegram` | `telegram_bot_token` + `telegram_chat_id` | BotFather token |
 | `email` | `email_smtp_*` | Standard SMTP, supports TLS/STARTTLS |
 | `webhook` | `webhook_url` | Generic HTTP POST (JSON body) |
+
+Alert sound (PipeWire/ALSA via `paplay`/`aplay`) is configured separately under `alerts.sound_enabled` and `alerts.per_severity_sounds`.
 
 ## Cooldown and Quiet Hours
 
