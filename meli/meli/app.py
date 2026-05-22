@@ -57,7 +57,17 @@ class MeliApplication(Adw.Application):
         if self._main_window is None:
             self._main_window = MeliMainWindow(application=app)
 
-            # Present the main window first so the compositor has a
+            # Put the lock screen / wizard in place BEFORE the main
+            # window paints for the first time. Otherwise the dashboard,
+            # live feed, geo map, etc. flash visible behind the splash
+            # and continue to be visible behind the lock screen on
+            # compositors where overlay transparency leaks through.
+            if is_setup_complete():
+                self._main_window.show_lock_screen()
+            # First-launch (wizard) path: nothing sensitive to hide
+            # because the DB is empty. Wizard opens after splash.
+
+            # Now present the main window so the compositor has a
             # parent surface to anchor the modal splash to. Without
             # this the splash can appear unparented on Wayland and
             # lose focus / z-order to other windows.
@@ -83,9 +93,10 @@ class MeliApplication(Adw.Application):
         """Called once the splash animation completes."""
         if self._main_window is None:
             return
-        # Main window was already presented before the splash; just run
-        # the wizard/lock-screen flow now that the user can see it.
-        self._post_splash_flow()
+        # Lock screen was already installed before the splash; only
+        # the first-launch wizard path still has work to do here.
+        if not is_setup_complete():
+            self._post_splash_flow()
 
     def _post_splash_flow(self) -> None:
         """Show setup wizard on first launch, otherwise the lock screen."""
