@@ -56,6 +56,10 @@ class MeliMainWindow(Adw.ApplicationWindow):
         self._view_instances: dict[str, Gtk.Widget] = {}
         self._lock_overlay: Gtk.Widget | None = None
         self._idle_timer: int | None = None
+        # Initialised here (not in _start_idle_timer) because
+        # _build_ui() calls _navigate_to() which calls
+        # _reset_idle_timer() before _start_idle_timer() runs.
+        self._idle_minutes: int = 0
 
         self._build_ui()
         self._register_shortcuts()
