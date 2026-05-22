@@ -2,6 +2,57 @@
 
 All notable changes to Meli are documented here.
 
+## [2.4.0] — 2026-05-22
+
+### Added — In-app auto-updater
+
+- **`meli/updater.py`** — stdlib-only (urllib) check against the GitHub
+  Releases feed for `sierengowskisierengowski-cpu/Meli`. Override via
+  `updates.feed_url` for self-hosted mirrors. Picks the first non-draft
+  release matching the channel (stable or include-prereleases). Prefers
+  a `meli-X.Y.Z.tar.gz` release asset; falls back to GitHub's
+  auto-generated source tarball (`tarball_url`) so the updater works
+  even before any custom assets are uploaded. Optional sibling
+  `.sha256` verification. Runs `install.sh` under `pkexec` (or
+  `--user` when `updates.user_scope` is true). Pre-release-aware semver
+  comparator (`is_newer`). `should_auto_check()` throttles checks by
+  `check_interval_hours` (default 24h). `skip_version()` records a
+  user-dismissed version so the toast doesn't re-prompt.
+
+- **`meli/ui/updater_dialog.py`** — `Adw.Window` with four states
+  (idle / available / installing / done). Worker thread does HTTP +
+  tarball download + extraction + install spawn; main loop polls the
+  subprocess every 500ms via `GLib.timeout_add` and pulses an
+  `Adw.ProgressBar`. The install log tail streams into a scrollable
+  text view. Closing the dialog cancels the install
+  (`InstallProcess.cancel()`). Safe extraction refuses path-traversing
+  tar entries.
+
+- **App startup**: after the lock screen clears, a background thread
+  hits the releases feed (throttled). If a newer non-skipped release
+  exists, an `Adw.Toast` surfaces on the main window with an
+  **"Update…"** button → opens the dialog with the result preloaded.
+
+- **`GAction app.check-for-updates`** registered with `Ctrl+U` accel
+  so the menu / palette / shortcut can trigger the dialog directly.
+
+- **Config keys** under `updates.*` in `~/.config/meli/config.yaml`:
+  `auto_check`, `check_interval_hours`, `include_prereleases`,
+  `user_scope`, `feed_url`, plus read-only `last_check_at`,
+  `last_seen_version`, `skipped_version`.
+
+### Operator notes
+
+- Release assets are picked by filename: ship `meli-2.4.0.tar.gz` (and
+  optionally `meli-2.4.0.tar.gz.sha256`) on the GitHub release for
+  fastest, smallest updates. Without a custom asset the updater
+  downloads the full GitHub source archive — works fine, just larger.
+- The installer is invoked with `pkexec` so the user authenticates
+  once per update; the venv at `/opt/meli` is rebuilt cleanly.
+- After install the dialog reminds the operator to restart the
+  `meli.service` + `meli-ingest.service` user units to pick up the
+  new code.
+
 ## [2.3.0] — 2026-05-22
 
 ### Added — Authorization & Intended Use

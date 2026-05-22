@@ -31,6 +31,7 @@ class MeliApplication(Adw.Application):
         self._main_window = None
         self._atrium_window = None
         self._kiosk_launch = bool(kiosk)
+        self._kiosk_pending_after_unlock = False
 
     def _on_activate(self, app: Adw.Application) -> None:
         from meli.ui.main_window import MeliMainWindow
@@ -47,13 +48,26 @@ class MeliApplication(Adw.Application):
                 self._open_atrium(parent_app=app, fullscreen=True)
                 return
             # Otherwise fall through to normal flow but auto-open
-            # the atrium right after the lock screen clears.
+            # the atrium right after the lock screen clears. The flag
+            # is consumed by on_post_unlock() below, which the main
+            # window calls from its _on_unlocked handler.
+            self._kiosk_pending_after_unlock = True
             log.info("Kiosk launch queued behind lock screen")
 
         if self._main_window is None:
             self._main_window = MeliMainWindow(application=app)
 
-            # Present the main window first so the compositor has a
+            # Put the lock screen / wizard in place BEFORE the main
+            # window paints for the first time. Otherwise the dashboard,
+            # live feed, geo map, etc. flash visible behind the splash
+            # and continue to be visible behind the lock screen on
+            # compositors where overlay transparency leaks through.
+            if is_setup_complete():
+                self._main_window.show_lock_screen()
+            # First-launch (wizard) path: nothing sensitive to hide
+            # because the DB is empty. Wizard opens after splash.
+
+            # Now present the main window so the compositor has a
             # parent surface to anchor the modal splash to. Without
             # this the splash can appear unparented on Wayland and
             # lose focus / z-order to other windows.
@@ -63,13 +77,10 @@ class MeliApplication(Adw.Application):
             splash_enabled = cfg.get("splash", "enabled", default=True)
 
             if splash_enabled:
-                from meli.ui.splash_screen import SplashScreen
-                splash = SplashScreen(
-                    application=app,
-                    transient_for=self._main_window,
-                )
-                splash.connect("splash-finished", lambda *_: self._after_splash())
-                splash.present()
+                # Splash now runs as an overlay inside the main window
+                # so it looks like one cohesive screen instead of a
+                # floating modal hovering over the lock veil.
+                self._main_window.show_splash(self._after_splash)
             else:
                 self._post_splash_flow()
         else:
@@ -79,9 +90,10 @@ class MeliApplication(Adw.Application):
         """Called once the splash animation completes."""
         if self._main_window is None:
             return
-        # Main window was already presented before the splash; just run
-        # the wizard/lock-screen flow now that the user can see it.
-        self._post_splash_flow()
+        # Lock screen was already installed before the splash; only
+        # the first-launch wizard path still has work to do here.
+        if not is_setup_complete():
+            self._post_splash_flow()
 
     def _post_splash_flow(self) -> None:
         """Show setup wizard on first launch, otherwise the lock screen."""
@@ -104,6 +116,24 @@ class MeliApplication(Adw.Application):
     def _on_wizard_complete(self, wizard) -> None:
         log.info("Setup wizard complete")
         self._main_window.show_lock_screen()
+
+    def on_post_unlock(self) -> None:
+        """Hook called by MeliMainWindow after the lock screen clears.
+        Honors a pending --kiosk launch by opening the Atrium kiosk
+        window once the user has authenticated, and schedules a
+        background update check so a toast surfaces if there's a newer
+        release on GitHub."""
+        # Background updater check, ~12s after unlock so the dashboard
+        # has time to paint first. Throttled by check_interval_hours.
+        GLib.timeout_add_seconds(12, self._maybe_auto_check_updates)
+
+        if not self._kiosk_pending_after_unlock:
+            return
+        self._kiosk_pending_after_unlock = False
+        log.info("Lock cleared — opening Atrium for kiosk launch")
+        # Defer one tick so the main window has finished its unlock
+        # transition before we present a fullscreen child window.
+        GLib.idle_add(lambda: (self._open_atrium(fullscreen=True), False)[1])
 
     def do_startup(self) -> None:
         Adw.Application.do_startup(self)
@@ -205,6 +235,76 @@ class MeliApplication(Adw.Application):
         atrium_action.connect("activate", lambda *_: self._open_atrium())
         self.add_action(atrium_action)
         self.set_accels_for_action("app.atrium", ["F12"])
+
+        # In-app updater (Ctrl+U from anywhere, or menu / palette)
+        upd_action = Gio.SimpleAction.new("check-for-updates", None)
+        upd_action.connect("activate", lambda *_: self._open_updater())
+        self.add_action(upd_action)
+        self.set_accels_for_action("app.check-for-updates", ["<Control>u"])
+
+    def _open_updater(self, *, preloaded=None) -> None:
+        """Open the updater dialog, optionally with a preloaded result."""
+        try:
+            from meli.ui.updater_dialog import UpdaterDialog
+            dlg = UpdaterDialog(parent=self._main_window, preloaded=preloaded)
+            dlg.present()
+        except Exception as e:
+            log.error("Updater dialog failed to open", error=str(e))
+
+    def _maybe_auto_check_updates(self) -> bool:
+        """Background-thread check; if a newer version is found and the
+        user hasn't skipped it, surface an Adw.Toast with an "Update…"
+        button. Runs once per launch, throttled by check_interval_hours.
+        """
+        import threading
+        try:
+            from meli import updater as updater_core
+        except Exception as e:
+            log.warning("Updater module unavailable", error=str(e))
+            return False
+        if not updater_core.should_auto_check():
+            return False
+
+        def worker() -> None:
+            try:
+                result = updater_core.check_for_update()
+            except Exception as e:
+                log.warning("Background update check failed", error=str(e))
+                return
+            if not result.info:
+                return
+            if updater_core.is_skipped(result.info.version):
+                log.info("Update available but skipped",
+                         version=result.info.version)
+                return
+            GLib.idle_add(self._show_update_toast, result)
+
+        threading.Thread(target=worker, daemon=True).start()
+        return False  # don't repeat the GLib timeout
+
+    def _show_update_toast(self, result) -> bool:
+        info = result.info
+        if self._main_window is None or info is None:
+            return False
+        try:
+            toast = Adw.Toast(
+                title=f"Meli {info.version} is available",
+                button_label="Update…",
+                timeout=10,
+            )
+            toast.connect("button-clicked",
+                          lambda *_: self._open_updater(preloaded=result))
+            # MeliMainWindow exposes a toast overlay; fall back to opening
+            # the dialog directly if it doesn't.
+            overlay = getattr(self._main_window, "toast_overlay", None) \
+                or getattr(self._main_window, "_toast_overlay", None)
+            if overlay is not None and hasattr(overlay, "add_toast"):
+                overlay.add_toast(toast)
+            else:
+                self._open_updater(preloaded=result)
+        except Exception as e:
+            log.warning("Could not surface update toast", error=str(e))
+        return False
 
     def _open_atrium(self, *, parent_app=None, fullscreen: bool = True) -> None:
         """Open (or re-present) the Atrium kiosk window."""
