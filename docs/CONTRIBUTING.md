@@ -1,12 +1,14 @@
 # Contributing to Meli
 
-Thank you for considering contributing to Meli! This is a personal project by Joseph Sierengowski, but pull requests for bug fixes, new parsers, and enrichment services are welcome.
+Meli is a personal project by Joseph Sierengowski. Pull requests for bug fixes, new parsers, and enrichment services are welcome.
+
+**Repository:** [github.com/sierengowskisierengowski-cpu/Meli](https://github.com/sierengowskisierengowski-cpu/Meli)
 
 ## Development Setup
 
 ```bash
-git clone https://github.com/sierengowski/meli.git
-cd meli
+git clone https://github.com/sierengowskisierengowski-cpu/Meli
+cd Meli
 
 # System dependencies (GTK4, PyGObject, Mosquitto)
 sudo ./install.sh --phase 1
@@ -14,18 +16,21 @@ sudo ./install.sh --phase 1
 # Python dev environment
 python3 -m venv --system-site-packages .venv
 source .venv/bin/activate
-pip install -e ".[dev]"
+pip install -e .
 
 # Run tests
-pytest tests/ -v
+python -m pytest tests/ -v
 
 # Launch the GUI
 python -m meli
 
-# Launch the ingest daemon
+# Launch the ingest daemon only
 python -m meli --daemon ingest
 
-# Debug mode (verbose logging, dev console renderer)
+# Launch Atrium kiosk mode
+python -m meli --kiosk
+
+# Debug mode (verbose logging)
 python -m meli --debug
 ```
 

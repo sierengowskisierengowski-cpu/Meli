@@ -6,7 +6,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
-MELI_VERSION="1.0.0"
+MELI_VERSION="2.2.2"
 INSTALL_DIR="/opt/meli"
 BIN_LINK="/usr/local/bin/meli"
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -37,7 +37,7 @@ cat << 'EOF'
   ██║╚██╔╝██║██╔══╝  ██║     ██║
   ██║ ╚═╝ ██║███████╗███████╗██║
   ╚═╝     ╚═╝╚══════╝╚══════╝╚═╝
-  Honeypot Command Center v1.0.0
+  Honeypot Command Center v2.2.2
   Author: Joseph Sierengowski
 
 EOF

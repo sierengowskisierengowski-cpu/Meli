@@ -1,6 +1,8 @@
 # Honeypot Integration Guide
 
-This guide covers connecting each supported honeypot type to Meli.
+**v2.2.2**
+
+This guide covers connecting each supported honeypot type to Meli, including the built-in Labyrinth tarpit.
 
 ## Event Format
 
@@ -208,3 +210,67 @@ mosquitto_pub -h 127.0.0.1 -t meli/events/ingest -m '{
 ```
 
 Events should appear in Meli's Live Feed within seconds.
+
+---
+
+## Labyrinth — Built-in SSH + Telnet Tarpit
+
+Labyrinth is Meli's native honeypot and requires no external software. Enable it in Settings → Labyrinth or in `config.yaml`:
+
+```yaml
+labyrinth:
+  enabled: true
+  host: "0.0.0.0"
+  telnet_port: 2323
+  ssh_enabled: true
+  ssh_port: 2222
+  max_sessions: 128
+  taunts:
+    intensity: subtle   # off | subtle | full
+```
+
+Once enabled and `meli-ingest` is running, Labyrinth listens on those ports automatically. No MQTT/HTTP configuration is required — events flow directly through Meli's internal ingest pipeline.
+
+Monitor activity in:
+- **Live Feed** — all Labyrinth connection, login, and command events appear here
+- **Labyrinth Sessions** view — live daemon status, sticky-IP roster, recent sessions
+- **Labyrinth Replay** view — full playback of any recorded session
+
+To test the Telnet listener:
+```bash
+telnet 127.0.0.1 2323
+```
+
+To test the SSH listener:
+```bash
+ssh -p 2222 root@127.0.0.1
+# Enter any password — it will be accepted
+```
+
+### Labyrinth canary tokens
+
+Labyrinth injects bait files into the fake filesystem (e.g. `/root/.aws/credentials`, `/root/.ssh/id_rsa`). When an attacker reads any of these files, a CRITICAL alert fires immediately.
+
+Canary token paths are defined in `meli/labyrinth/canary.py`. Do not modify the bait strings — they are deliberately formatted to avoid triggering secret scanners.
+
+### Labyrinth blocklist export
+
+After sessions accumulate, export confirmed-malicious IPs from the Labyrinth Sessions view → "Export blocklist…":
+
+```bash
+# fail2ban format
+python -c "from meli.labyrinth.blocklist import export; print(export('fail2ban'))"
+
+# iptables DROP rules
+python -c "from meli.labyrinth.blocklist import export; print(export('iptables'))"
+```
+
+### Daily digest
+
+If the `meli-labyrinth-digest.timer` systemd unit is installed, a 24-hour Markdown + PDF summary is generated daily at 07:00 and posted as a teaser to configured notification channels.
+
+Manual trigger:
+```bash
+python -m meli --digest
+```
+

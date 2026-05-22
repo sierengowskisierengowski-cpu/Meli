@@ -1,5 +1,7 @@
 # Meli Installation Guide
 
+**v2.2.2**
+
 ## Supported Distributions
 
 | Distribution | Status |
@@ -23,8 +25,8 @@
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/sierengowski/meli.git
-cd meli
+git clone https://github.com/sierengowskisierengowski-cpu/Meli
+cd Meli
 ```
 
 ### 2. Install system dependencies
@@ -47,12 +49,18 @@ This installs:
 ./install.sh
 ```
 
-This:
-1. Creates `/opt/meli/venv` with `--system-site-packages` (required for PyGObject)
-2. Installs all Python dependencies into the venv
-3. Installs the `meli` script to `/usr/local/bin/meli`
-4. Installs `meli.desktop` and the SVG icon
-5. Installs the `meli-ingest.service` systemd user service
+This runs 9 phases:
+1. System packages (if not already installed)
+2. Python virtual environment (`/opt/meli/venv` with `--system-site-packages`)
+3. Python dependencies (`pip install -r requirements.txt`)
+4. Application files (copies the `meli/` package into the venv)
+5. Desktop integration (`meli.desktop`, SVG icon)
+6. systemd user service (`meli-ingest.service`)
+7. Mosquitto configuration (creates `meli.conf` in `/etc/mosquitto/conf.d/`)
+8. User data directories (`~/.local/share/meli/`, `~/.config/meli/`)
+9. Database initialization (creates schema on first run)
+
+Also installs the `meli` script to `/usr/local/bin/meli`.
 
 ### 4. Launch Meli
 
@@ -90,10 +98,7 @@ Meli uses MaxMind GeoLite2 for offline IP geolocation (no per-lookup API costs):
 3. In Meli: Settings → Enrichment APIs → MaxMind License Key → enter key
 4. Click "Download GeoLite2 Databases Now"
 
-Or from the CLI:
-```bash
-meli --help  # check for update-geoip subcommand in future versions
-```
+Databases download to `~/.local/share/meli/geoip/` (~60–70 MB total). MaxMind updates them weekly; re-download monthly for accuracy.
 
 ## Enrichment API Keys (Optional)
 
@@ -109,10 +114,32 @@ All enrichment services are optional. Configure them in Settings → Enrichment 
 
 API keys are encrypted at rest using your master password.
 
+## Labyrinth Tarpit (optional)
+
+To start the Labyrinth SSH and Telnet tarpit:
+
+```bash
+# Enable via Settings → Labyrinth, then:
+systemctl --user enable --now meli-ingest   # ingest daemon includes the tarpit
+```
+
+Or run a standalone test:
+```bash
+python -c "
+from meli.labyrinth import LabyrinthDaemon
+d = LabyrinthDaemon(host='127.0.0.1', port=2323, ssh_enabled=False)
+d.start()
+import time; time.sleep(60)
+d.stop()
+"
+```
+
+Note: SSH listener requires `paramiko` (`pip install paramiko`). The install script installs it by default.
+
 ## Arch Linux: AUR / PKGBUILD
 
 ```bash
-cd meli
+cd Meli
 makepkg -si
 ```
 
@@ -126,7 +153,7 @@ yay -S meli
 ## Updating
 
 ```bash
-cd meli
+cd Meli
 git pull
 ./install.sh --update
 ```
@@ -175,3 +202,4 @@ The installer creates `/opt/meli` owned by your user. If it was created by root,
 ```bash
 sudo chown -R $USER:$USER /opt/meli
 ```
+
