@@ -56,6 +56,10 @@ class MeliMainWindow(Adw.ApplicationWindow):
         self._view_instances: dict[str, Gtk.Widget] = {}
         self._lock_overlay: Gtk.Widget | None = None
         self._idle_timer: int | None = None
+        # Initialised here (not in _start_idle_timer) because
+        # _build_ui() calls _navigate_to() which calls
+        # _reset_idle_timer() before _start_idle_timer() runs.
+        self._idle_minutes: int = 0
 
         self._build_ui()
         self._register_shortcuts()
@@ -249,11 +253,45 @@ class MeliMainWindow(Adw.ApplicationWindow):
         lock_session()
         log.info("Lock screen shown")
 
+    # ── Splash overlay ────────────────────────────────────────────────────────
+    def show_splash(self, on_done) -> None:
+        """Run the startup splash inside this window's overlay so it
+        looks like one cohesive screen instead of a floating modal."""
+        from meli.ui.splash_screen import SplashOverlay
+        if getattr(self, "_splash_overlay", None):
+            return
+        splash = SplashOverlay()
+        self._splash_overlay = splash
+
+        def _finish(*_):
+            try:
+                self._overlay.remove_overlay(splash)
+            except Exception as e:
+                log.debug("Splash overlay remove failed", error=str(e))
+            self._splash_overlay = None
+            try:
+                on_done()
+            except Exception as e:
+                log.warning("Post-splash callback raised", error=str(e))
+
+        splash.connect("splash-finished", _finish)
+        # add_overlay puts it on top — above the lock screen veil.
+        self._overlay.add_overlay(splash)
+        log.info("Splash overlay shown")
+
     def _on_unlocked(self, lock_screen: Gtk.Widget) -> None:
         self._overlay.remove_overlay(lock_screen)
         self._lock_overlay = None
         self._reset_idle_timer()
         log.info("Session unlocked")
+        # Notify the application so it can honor a pending --kiosk launch.
+        try:
+            app = self.get_application()
+            hook = getattr(app, "on_post_unlock", None)
+            if callable(hook):
+                hook()
+        except Exception as e:
+            log.warning("post-unlock hook failed", error=str(e))
 
     # ── Idle timer (auto-lock) ────────────────────────────────────────────────
 
