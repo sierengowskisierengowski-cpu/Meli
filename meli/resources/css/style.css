@@ -770,75 +770,101 @@ navigationsplitview > content {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   CASCADE-WINNING OVERRIDES — v2.7.4
-   The hive theme was losing to libadwaita's default card/box styles.
-   These rules raise selector specificity (window.meli-window scope
-   + !important) so the gradients/glow/border actually paint.
+   CASCADE-WINNING OVERRIDES — v2.7.6
+   GTK4's CSS parser is NOT a browser. Two rules to remember:
+     1. !important is supported but flaky around multi-value props
+        (commas in box-shadow, alpha() in border shorthand). Drop it
+        and win via selector specificity instead.
+     2. Split `border` shorthand into border-width/style/color when
+        any component uses a function value like alpha(@var, X).
+   These selectors chain element + class so they outweigh Adwaita's
+   .card/.boxed-list defaults without ever touching !important.
    ═══════════════════════════════════════════════════════════════════ */
 
-window.meli-window,
-window.meli-window > *,
-window.meli-window box {
-    background-color: @meli_hive_black !important;
+window.meli-window {
+    background-color: @meli_hive_black;
 }
 
-window.meli-window .hive-panel,
-.hive-panel {
+window.meli-window box.hive-panel,
+window.meli-window grid.hive-panel,
+window.meli-window frame.hive-panel,
+box.hive-panel,
+grid.hive-panel,
+frame.hive-panel {
     background-image: linear-gradient(155deg,
         alpha(@meli_comb_panel, 0.96) 0%,
-        alpha(@meli_comb_dark, 1.0) 100%) !important;
-    background-color: @meli_comb_dark !important;
-    border: 1px solid alpha(@meli_raw_honey, 0.35) !important;
-    border-radius: 14px !important;
+        alpha(@meli_comb_dark, 1.0) 100%);
+    background-color: @meli_comb_dark;
+    border-width: 1px;
+    border-style: solid;
+    border-color: alpha(@meli_raw_honey, 0.35);
+    border-radius: 14px;
     box-shadow: inset 0 1px 0 alpha(@meli_pale_comb, 0.05),
                 0 8px 28px rgba(0, 0, 0, 0.55),
-                0 0 18px alpha(@meli_raw_honey, 0.08) !important;
-    padding: 16px !important;
+                0 0 18px alpha(@meli_raw_honey, 0.08);
+    padding: 16px;
 }
 
-window.meli-window .kpi-tile,
-.kpi-tile {
+window.meli-window box.kpi-tile,
+window.meli-window grid.kpi-tile,
+box.kpi-tile,
+grid.kpi-tile {
     background-image: linear-gradient(155deg,
-        @meli_comb_panel 0%, @meli_comb_dark 100%) !important;
-    background-color: @meli_comb_panel !important;
-    border: 1px solid alpha(@meli_raw_honey, 0.30) !important;
-    border-top: 3px solid @meli_amber_glow !important;
-    border-radius: 14px !important;
+        @meli_comb_panel 0%, @meli_comb_dark 100%);
+    background-color: @meli_comb_panel;
+    border-width: 3px 1px 1px 1px;
+    border-style: solid;
+    border-color: @meli_amber_glow
+                  alpha(@meli_raw_honey, 0.30)
+                  alpha(@meli_raw_honey, 0.30)
+                  alpha(@meli_raw_honey, 0.30);
+    border-radius: 14px;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.50),
-                0 0 16px alpha(@meli_raw_honey, 0.10) !important;
-    padding: 14px 16px !important;
+                0 0 16px alpha(@meli_raw_honey, 0.10);
+    padding: 14px 16px;
 }
 
-window.meli-window .hive-header,
-.hive-header {
+window.meli-window box.hive-header,
+box.hive-header {
     background-image: linear-gradient(180deg,
-        @meli_comb_panel 0%, @meli_comb_dark 100%) !important;
-    border-bottom: 1px solid alpha(@meli_raw_honey, 0.35) !important;
+        @meli_comb_panel 0%, @meli_comb_dark 100%);
+    background-color: @meli_comb_panel;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    border-bottom-color: alpha(@meli_raw_honey, 0.35);
     box-shadow: inset 0 -1px 0 alpha(@meli_raw_honey, 0.18),
-                0 2px 12px rgba(0, 0, 0, 0.5) !important;
-    padding: 10px 18px !important;
+                0 2px 12px rgba(0, 0, 0, 0.5);
+    padding: 10px 18px;
 }
 
-window.meli-window .hive-sidebar,
-.hive-sidebar {
+window.meli-window box.hive-sidebar,
+window.meli-window stack.hive-sidebar,
+box.hive-sidebar,
+stack.hive-sidebar {
     background-image: linear-gradient(180deg,
         alpha(@meli_comb_panel, 0.98) 0%,
-        alpha(@meli_hive_black, 1.0) 100%) !important;
-    background-color: @meli_comb_dark !important;
-    border-right: 1px solid alpha(@meli_raw_honey, 0.30) !important;
-    box-shadow: inset -1px 0 0 alpha(@meli_raw_honey, 0.18) !important;
+        alpha(@meli_hive_black, 1.0) 100%);
+    background-color: @meli_comb_dark;
+    border-right-width: 1px;
+    border-right-style: solid;
+    border-right-color: alpha(@meli_raw_honey, 0.30);
+    box-shadow: inset -1px 0 0 alpha(@meli_raw_honey, 0.18);
 }
 
-/* Beat libadwaita's .card / .boxed-list backdrop on PreferencesGroup */
-window.meli-window preferencesgroup list,
-window.meli-window preferencesgroup listbox,
-window.meli-window .card,
-preferencesgroup list,
-preferencesgroup listbox {
+/* Beat libadwaita's .card / .boxed-list backdrop on PreferencesGroup.
+   Use element+class chaining for specificity instead of !important. */
+window.meli-window listbox.boxed-list,
+window.meli-window list.boxed-list,
+window.meli-window box.card,
+listbox.boxed-list,
+list.boxed-list,
+box.card {
     background-image: linear-gradient(155deg,
         alpha(@meli_comb_panel, 0.95) 0%,
-        alpha(@meli_comb_dark, 1.0) 100%) !important;
-    background-color: @meli_comb_panel !important;
-    border: 1px solid alpha(@meli_raw_honey, 0.28) !important;
-    border-radius: 12px !important;
+        alpha(@meli_comb_dark, 1.0) 100%);
+    background-color: @meli_comb_panel;
+    border-width: 1px;
+    border-style: solid;
+    border-color: alpha(@meli_raw_honey, 0.28);
+    border-radius: 12px;
 }
