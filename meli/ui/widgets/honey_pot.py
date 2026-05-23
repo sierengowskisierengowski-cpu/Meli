@@ -191,19 +191,50 @@ def paint_pot(cr: cairo.Context, width: int, height: int, *,
     """Paint the cylindrical honey jar (mockup-matching)."""
     cx = width / 2
 
-    # ── 1. Soft amber radial glow halo (always on, intensifies on pulse) ─
-    base_glow_alpha = 0.18 + 0.45 * (pulse_alpha if pulse_color else 0)
-    glow_color = pulse_color if pulse_color else AMBER_GLOW
-    for i in range(6, 0, -1):
-        radius = _BODY_HALF_W + 20 + i * 14
-        a = (base_glow_alpha / i) * 0.6
-        grad = cairo.RadialGradient(cx, _BODY_MID_Y, _BODY_HALF_W * 0.4,
-                                    cx, _BODY_MID_Y, radius)
-        grad.add_color_stop_rgba(0, *glow_color, a)
-        grad.add_color_stop_rgba(1, *glow_color, 0)
-        cr.set_source(grad)
-        cr.arc(cx, _BODY_MID_Y, radius, 0, math.tau)
-        cr.fill()
+    # ── 1. Soft amber radial glow halo ────────────────────────────────
+    # Mockup spec: ONE bright dominant radial gradient at AMBER@0.55
+    # fading to transparent over r=135 (svg cx=120 cy=155). The prior
+    # 6-pass approach (alpha = 0.18/i × 0.6 ≈ 0.018 per pass) was
+    # effectively invisible. We now paint a single bright halo and add
+    # a constant 4s sine shimmer on its alpha so the jar gently pulses
+    # like the mockup's CSS `pulse-glow 4s infinite` — independent of
+    # the .pulse() alert event boost.
+    #
+    # `wobble_phase` advances ~1.6 rad/s in the widget tick, so a
+    # cos(phase * 0.78) cycle is roughly 5s — close enough to "4s" feel.
+    shimmer = 0.5 + 0.5 * math.cos(wobble_phase * 0.78)   # 0..1
+    base_glow_alpha = 0.42 + 0.18 * shimmer                # 0.42 .. 0.60
+    if pulse_color:
+        # Alert pulse boosts on top of the resting halo and tints colour.
+        glow_color = pulse_color
+        base_glow_alpha = min(0.95, base_glow_alpha + 0.35 * pulse_alpha)
+    else:
+        glow_color = AMBER_GLOW
+
+    # Primary bright halo — matches the mockup's potGlow gradient.
+    halo_r = _BODY_HALF_W * 1.95
+    grad = cairo.RadialGradient(cx, _BODY_MID_Y, _BODY_HALF_W * 0.15,
+                                cx, _BODY_MID_Y, halo_r)
+    grad.add_color_stop_rgba(0.0, *glow_color, base_glow_alpha)
+    grad.add_color_stop_rgba(0.55, *glow_color, base_glow_alpha * 0.35)
+    grad.add_color_stop_rgba(1.0, *glow_color, 0.0)
+    cr.set_source(grad)
+    cr.arc(cx, _BODY_MID_Y, halo_r, 0, math.tau)
+    cr.fill()
+
+    # Outer shimmer ring — second softer halo offset in phase, mimicking
+    # the mockup's `shimmer 4s infinite` overlay on top of the static
+    # glow. Out of phase so the combined brightness breathes.
+    outer_shimmer = 0.5 + 0.5 * math.cos(wobble_phase * 0.78 + math.pi)
+    outer_alpha = 0.10 + 0.12 * outer_shimmer
+    outer_r = halo_r * 1.25
+    grad2 = cairo.RadialGradient(cx, _BODY_MID_Y, _BODY_HALF_W * 0.8,
+                                 cx, _BODY_MID_Y, outer_r)
+    grad2.add_color_stop_rgba(0.0, *glow_color, outer_alpha)
+    grad2.add_color_stop_rgba(1.0, *glow_color, 0.0)
+    cr.set_source(grad2)
+    cr.arc(cx, _BODY_MID_Y, outer_r, 0, math.tau)
+    cr.fill()
 
     # ── 2. Jar body fill (warm-dark glass) ───────────────────────────
     _jar_path(cr, cx)

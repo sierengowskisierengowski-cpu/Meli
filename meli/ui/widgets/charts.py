@@ -377,13 +377,21 @@ class KpiTile(Gtk.Box):
         self.append(self._sub_lbl)
 
         if sparkline:
-            # Prominent area chart filling the bottom 40% of the card.
-            # vexpand + valign=END forces it to claim all leftover height
-            # below the labels instead of collapsing to its min size.
-            self._spark = Sparkline(height=96, color=accent)
-            self._spark.set_margin_top(10)
-            self._spark.set_vexpand(True)
-            self._spark.set_valign(Gtk.Align.FILL)
+            # Mockup spec: h=44, sits compactly at the bottom of the card
+            # under the labels. We use 52 (a hair taller for GTK font
+            # metrics) and DON'T vexpand — letting the card collapse to
+            # natural height makes the chart read as dense and crisp
+            # instead of a haze of faded gradient over empty space.
+            # The 96/vexpand=FILL approach from v2.7.18 stretched the
+            # gradient over too much vertical space and the bottom 60%
+            # looked empty. -4px horizontal margins extend the chart
+            # edge-to-edge into the card padding, matching the mockup's
+            # `mt-2 -mx-1` extension.
+            self._spark = Sparkline(height=52, color=accent)
+            self._spark.set_margin_top(8)
+            self._spark.set_margin_start(-4)
+            self._spark.set_margin_end(-4)
+            self._spark.set_valign(Gtk.Align.END)
             self._spark.set_hexpand(True)
             self.append(self._spark)
         else:
