@@ -2,6 +2,25 @@
 
 > *Meli* is Greek for "honey" — a fitting name for a command center that watches your traps.
 
+**v2.9.0** — Meli now ships **two complete frontends** against the same Python ingest pipeline:
+
+- 🐝 **Web Command Center** (new in 2.9) — a React + Vite single-page app in `webui/`, served by `meli-web` (FastAPI + uvicorn) at `http://127.0.0.1:17655/`. 17 dashboards: live KPI tiles, severity breakdown, 24-hour attack-intensity chart, top-attacker leaderboard, honey-jar capacity gauge, honeypot fleet status, attackers / events / credentials / commands / payloads / sessions / services / alerts (with one-click acknowledge) / reports / botnets / IP-reputation lookup / setup wizard.
+- 🖥️ **GTK4 desktop app** (the original) — full native Linux experience with the Cairo amphora, Labyrinth tarpit controls, and 16 windowed views.
+
+Both frontends read the same SQLite database written by the Meli ingest daemon, so events captured by Cowrie / Dionaea / Conpot / Heralding / Endlessh / Labyrinth show up everywhere automatically.
+
+**One-command launch** (no /opt install required):
+
+```bash
+./run.sh
+```
+
+This bootstraps a `.venv`, installs Python deps, runs `npm install && npm run build` in `webui/`, then launches `meli-web` on port `17655` and opens your browser. Add `--native` for the borderless Electron window, or `--no-open` for a headless server.
+
+For a full system install (systemd user units, desktop entry, `/opt/meli`), use `./install.sh` instead — Phase 4b builds the React webui and Phase 4c (`--with-electron`) installs the Electron shell.
+
+---
+
 **v2.2.2** — A native **GTK4 + libadwaita** Linux desktop application for real-time honeypot monitoring, threat intelligence, and active deception. Built for security researchers, SOC analysts, homelab operators, and anyone running Cowrie, Heralding, Dionaea, or their own custom honeypot infrastructure.
 
 **Author:** Joseph Sierengowski  
