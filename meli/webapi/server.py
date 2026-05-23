@@ -120,9 +120,55 @@ def _iso(dtval) -> Optional[str]:
 
 
 def _ip_to_id(ip: str) -> int:
-    """Stable integer id derived from an IP string (for round-trip with the
-    React app, which expects integer ids while the DB keys attackers by IP)."""
+    """Stable integer id derived from an IP string. Used ONLY for the static
+    in-process sample data (8 IPs, zero collision risk). Real DB rows go
+    through ``_attacker_id_for_ip`` instead, which is collision-free."""
     return zlib.crc32(ip.encode("utf-8")) & 0x7FFFFFFF
+
+
+# Collision-free bidirectional cache between integer ids (what the React app
+# uses on the wire) and IP strings (what the Attacker model keys on).
+# Populated lazily, append-only, deterministic for any DB state because we
+# always walk attackers in (first_seen ASC, ip ASC) order.
+_ATTACKER_IP_BY_ID: dict[int, str] = {}
+_ATTACKER_ID_BY_IP: dict[str, int] = {}
+
+
+def _ensure_attacker_index(s) -> None:
+    if s is None:
+        return
+    try:
+        from meli.database.models import Attacker
+        rows = (s.query(Attacker.ip)
+                 .order_by(Attacker.first_seen.asc(), Attacker.ip.asc()).all())
+        for (ip,) in rows:
+            if ip and ip not in _ATTACKER_ID_BY_IP:
+                new_id = len(_ATTACKER_IP_BY_ID) + 1
+                _ATTACKER_ID_BY_IP[ip] = new_id
+                _ATTACKER_IP_BY_ID[new_id] = ip
+    except Exception:
+        pass  # index is best-effort; lookups can still fall back to sample mode
+
+
+def _attacker_id_for_ip(s, ip: str) -> int:
+    """Return the stable int id for an IP, creating it if needed."""
+    if ip in _ATTACKER_ID_BY_IP:
+        return _ATTACKER_ID_BY_IP[ip]
+    _ensure_attacker_index(s)
+    if ip in _ATTACKER_ID_BY_IP:
+        return _ATTACKER_ID_BY_IP[ip]
+    # Brand-new attacker we haven't seen yet — append.
+    new_id = len(_ATTACKER_IP_BY_ID) + 1
+    _ATTACKER_ID_BY_IP[ip] = new_id
+    _ATTACKER_IP_BY_ID[new_id] = ip
+    return new_id
+
+
+def _ip_for_attacker_id(s, attacker_id: int) -> Optional[str]:
+    if attacker_id in _ATTACKER_IP_BY_ID:
+        return _ATTACKER_IP_BY_ID[attacker_id]
+    _ensure_attacker_index(s)
+    return _ATTACKER_IP_BY_ID.get(attacker_id)
 
 
 def _norm_sev(s: Optional[str]) -> str:
@@ -235,19 +281,32 @@ def _uptime_seconds() -> int:
 # ─── Routes: health + dashboard ───────────────────────────────────────────
 @app.get("/api/healthz")
 def healthz():
-    return {"status": "ok"}
+    """Surface DB reachability so operators can distinguish an empty-but-
+    healthy backend from a misconfigured one. Always returns 200 (the React
+    client only checks status code); inspect ``db`` to debug."""
+    db_state = "missing"  # no DB file yet — sample data being served
+    db_error: Optional[str] = None
+    try:
+        with _session() as s:
+            if s is not None:
+                from meli.database.models import Event
+                s.query(Event).limit(1).all()
+                db_state = "ok"
+    except Exception as exc:
+        db_state = "error"
+        db_error = str(exc)[:200]
+    body = {"status": "ok", "db": db_state, "version": "2.9.0"}
+    if db_error:
+        body["dbError"] = db_error
+    return body
 
 
 @app.get("/api/health")
 def health_legacy():
     """Legacy v1 endpoint for backwards-compat with older callers."""
-    with _session() as s:
-        return {
-            "status": "ok",
-            "db": "ok" if s is not None else "empty",
-            "version": "2.9.0",
-            "timestamp": dt.datetime.utcnow().isoformat() + "Z",
-        }
+    body = healthz()
+    body["timestamp"] = dt.datetime.utcnow().isoformat() + "Z"
+    return body
 
 
 @app.get("/api/dashboard/summary")
@@ -507,9 +566,9 @@ def get_event(event_id: int):
 
 
 # ─── Routes: attackers ────────────────────────────────────────────────────
-def _attacker_to_dict(a) -> dict:
+def _attacker_to_dict(a, s=None) -> dict:
     return {
-        "id": _ip_to_id(a.ip),
+        "id": _attacker_id_for_ip(s, a.ip),
         "ip": a.ip,
         "country": a.organization or a.country_code,
         "countryCode": a.country_code,
@@ -543,9 +602,10 @@ def list_attackers(limit: int = Query(50, ge=1, le=500),
             rows = q.offset(offset).limit(limit).all()
             if not rows and offset == 0 and not search:
                 return _SAMPLE_ATTACKERS[:limit]
-            return [_attacker_to_dict(a) for a in rows]
-        except Exception:
-            return _SAMPLE_ATTACKERS[:limit]
+            _ensure_attacker_index(s)
+            return [_attacker_to_dict(a, s) for a in rows]
+        except Exception as exc:
+            raise HTTPException(500, f"attackers query failed: {exc}")
 
 
 @app.get("/api/attackers/{attacker_id}")
@@ -558,10 +618,13 @@ def get_attacker(attacker_id: int):
             raise HTTPException(404, "attacker not found")
         try:
             from meli.database.models import Attacker
-            for a in s.query(Attacker).all():
-                if _ip_to_id(a.ip) == attacker_id:
-                    return _attacker_to_dict(a)
-            raise HTTPException(404, "attacker not found")
+            ip = _ip_for_attacker_id(s, attacker_id)
+            if ip is None:
+                raise HTTPException(404, "attacker not found")
+            a = s.query(Attacker).filter(Attacker.ip == ip).first()
+            if not a:
+                raise HTTPException(404, "attacker not found")
+            return _attacker_to_dict(a, s)
         except HTTPException:
             raise
         except Exception as exc:
@@ -612,19 +675,12 @@ def _reputation_for_ip(s, ip: str) -> dict:
 @app.get("/api/attackers/{attacker_id}/reputation")
 def get_attacker_reputation(attacker_id: int):
     with _session() as s:
-        ip = None
         if s is None:
             for a in _SAMPLE_ATTACKERS:
                 if a["id"] == attacker_id:
-                    ip = a["ip"]; break
-        else:
-            try:
-                from meli.database.models import Attacker
-                for a in s.query(Attacker).all():
-                    if _ip_to_id(a.ip) == attacker_id:
-                        ip = a.ip; break
-            except Exception:
-                ip = None
+                    return _reputation_for_ip(None, a["ip"])
+            raise HTTPException(404, "attacker not found")
+        ip = _ip_for_attacker_id(s, attacker_id)
         if ip is None:
             raise HTTPException(404, "attacker not found")
         return _reputation_for_ip(s, ip)
