@@ -29,7 +29,7 @@ from gi.repository import Gio  # noqa: E402  (Gtk already required above)
 
 import structlog
 
-from meli.ui.widgets import HiveHeader
+from meli.ui.widgets import HiveHeader, CairoPanel
 
 log = structlog.get_logger()
 
@@ -186,13 +186,8 @@ class LabyrinthSessionsView(Gtk.Box):
         #   members: list     # SessionFingerprint
         #   label: str        # human-readable summary
         #   size: int         # @property → len(members)
-        frame = Gtk.Frame()
-        frame.add_css_class("card")
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        box.set_margin_top(10)
-        box.set_margin_bottom(10)
-        box.set_margin_start(12)
-        box.set_margin_end(12)
+        frame = CairoPanel(padding=12, spacing=4)
+        box = frame
         head = Gtk.Box(spacing=10)
         title = Gtk.Label()
         title.set_xalign(0)
@@ -220,7 +215,6 @@ class LabyrinthSessionsView(Gtk.Box):
             ips_lbl.set_xalign(0)
             ips_lbl.set_wrap(True)
             box.append(ips_lbl)
-        frame.set_child(box)
         return frame
 
     def _build_ui(self) -> None:
@@ -278,22 +272,18 @@ class LabyrinthSessionsView(Gtk.Box):
         outer.append(self._recent_list)
 
     def _make_status_card(self) -> Gtk.Widget:
-        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        card.add_css_class("card")
+        card = CairoPanel(padding=16, spacing=4)
         card.set_margin_top(4)
-        inner = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        inner.set_margin_all(14)
         self._status_label = Gtk.Label()
         self._status_label.set_xalign(0)
         self._status_label.add_css_class("title-2")
-        inner.append(self._status_label)
+        card.append(self._status_label)
         self._detail_label = Gtk.Label()
         self._detail_label.set_xalign(0)
         self._detail_label.add_css_class("dim-label")
         self._detail_label.set_use_markup(True)
         self._detail_label.set_wrap(True)
-        inner.append(self._detail_label)
-        card.append(inner)
+        card.append(self._detail_label)
         return card
 
     # ── refresh ────────────────────────────────────────────────────────

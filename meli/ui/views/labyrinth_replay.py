@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 
 import structlog
 
-from meli.ui.widgets import HiveHeader
+from meli.ui.widgets import HiveHeader, CairoPanel
 
 log = structlog.get_logger()
 
@@ -118,7 +118,11 @@ class LabyrinthReplayView(Gtk.Box):
         return scroll
 
     def _build_player(self) -> Gtk.Widget:
-        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        outer = CairoPanel(padding=0, spacing=0)
+        outer.set_margin_top(8)
+        outer.set_margin_bottom(8)
+        outer.set_margin_start(8)
+        outer.set_margin_end(8)
 
         # Top: session info
         self._info_label = Gtk.Label()

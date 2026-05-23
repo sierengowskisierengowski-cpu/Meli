@@ -25,13 +25,13 @@ gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, Graphene, Gtk  # noqa: E402
 
 
-# ── Palette (matches @meli_* CSS vars in style.css) ────────────────────
-PANEL_TOP    = (0xa1 / 255, 0x6e / 255, 0x18 / 255)
-PANEL_MID    = (0x2e / 255, 0x1f / 255, 0x10 / 255)
-PANEL_BOTTOM = (0x14 / 255, 0x0c / 255, 0x05 / 255)
-PANEL_BORDER = (0x5a / 255, 0x3a / 255, 0x1c / 255)
+# ── Palette ────────────────────────────────────────────────────────────
+# Per design spec: hive-black core, raw-honey amber radiating to the edges.
+HIVE_BLACK     = (0x10 / 255, 0x0a / 255, 0x04 / 255)   # #100a04 — panel core
+RAW_HONEY      = (0xd4 / 255, 0xa0 / 255, 0x17 / 255)   # #d4a017 — edge bleed
+AMBER_GLOW     = (0xf5 / 255, 0x9e / 255, 0x0b / 255)   # outer halo + KPI top edge
 GOLD_HIGHLIGHT = (0xf5 / 255, 0xc8 / 255, 0x4a / 255)
-AMBER_TOP_EDGE = (0xf5 / 255, 0x9e / 255, 0x0b / 255)
+PANEL_BORDER   = RAW_HONEY                              # border uses raw honey @ 40%
 
 
 def _rounded_rect(ctx: cairo.Context, x: float, y: float,
@@ -51,78 +51,96 @@ def paint_hive_panel(ctx: cairo.Context, w: float, h: float, *,
                      glow_strength: float = 1.0) -> None:
     """Paint the luminous hive panel chrome onto `ctx`, sized (w,h).
 
-    `top_edge` (r,g,b) paints a 3px bright amber strip across the top —
-    used by KPI tiles. `glow_strength` scales the outer amber halo.
+    Design spec:
+      • Body: radial gradient — hive-black #100a04 at the center radiating
+        outward to raw-honey #d4a017 @ 15% alpha at the edges (amber light
+        glowing from inside the panel walls).
+      • Border: 1.5px raw-honey @ 40% alpha.
+      • Outer halo: ~8px soft amber glow @ 20% alpha (multi-pass falloff).
+      • Optional `top_edge` (r,g,b) paints a 3px bright amber strip across
+        the top — used by KPI tiles.
+      • `glow_strength` scales the outer halo intensity.
     """
-    pad = 6.0  # space reserved for the outer drop shadow
+    pad = 8.0  # reserve for the 8px outer halo
 
-    # ── 1. Outer drop shadow (warm amber, soft) ────────────────────────
-    for i in range(6):
-        a = (0.12 - i * 0.018) * glow_strength
-        if a <= 0:
+    inner_x = pad
+    inner_y = pad
+    inner_w = max(1.0, w - 2 * pad)
+    inner_h = max(1.0, h - 2 * pad)
+
+    # ── 1. Outer amber halo (8px spread, 20% alpha falloff) ────────────
+    halo_steps = 8
+    for i in range(halo_steps, 0, -1):
+        # Linear falloff from 0.20 at i=1 to ~0.02 at i=halo_steps
+        a = (0.20 * (1.0 - (i - 1) / halo_steps)) * glow_strength
+        if a <= 0.005:
             continue
-        ctx.set_source_rgba(
-            AMBER_TOP_EDGE[0], AMBER_TOP_EDGE[1], AMBER_TOP_EDGE[2], a)
+        ctx.set_source_rgba(*AMBER_GLOW, a)
         _rounded_rect(ctx,
-                      pad - i * 0.8, pad - i * 0.4,
-                      w - 2 * pad + i * 1.6, h - 2 * pad + i * 1.2,
-                      radius + i * 0.6)
+                      inner_x - i, inner_y - i,
+                      inner_w + 2 * i, inner_h + 2 * i,
+                      radius + i)
         ctx.fill()
 
-    # Solid black drop shadow under the panel for grounding
+    # Solid black grounding shadow directly under the panel
     ctx.set_source_rgba(0, 0, 0, 0.55)
-    _rounded_rect(ctx, pad, pad + 3, w - 2 * pad, h - 2 * pad, radius)
+    _rounded_rect(ctx, inner_x, inner_y + 2, inner_w, inner_h, radius)
     ctx.fill()
 
-    # ── 2. Body gradient (warm honey top → dark base) ──────────────────
-    grad = cairo.LinearGradient(0, pad, 0, h - pad)
-    grad.add_color_stop_rgb(0.00, *PANEL_TOP)
-    grad.add_color_stop_rgb(0.18, *PANEL_MID)
-    grad.add_color_stop_rgb(1.00, *PANEL_BOTTOM)
-    ctx.set_source(grad)
-    _rounded_rect(ctx, pad, pad, w - 2 * pad, h - 2 * pad, radius)
+    # ── 2. Body — solid hive-black base ────────────────────────────────
+    ctx.set_source_rgb(*HIVE_BLACK)
+    _rounded_rect(ctx, inner_x, inner_y, inner_w, inner_h, radius)
     ctx.fill_preserve()
 
-    # ── 3. Inner gold halo (faint glow rim inside the border) ──────────
+    # ── 3. Radial amber edge-bleed (dark center → amber rim) ──────────
+    # Center the radial at the panel midpoint; inner radius covers ~45%
+    # of the panel (stays black), outer radius reaches the corners so
+    # amber bleeds out from the walls.
+    cx = inner_x + inner_w / 2
+    cy = inner_y + inner_h / 2
+    inner_r = min(inner_w, inner_h) * 0.30
+    outer_r = math.hypot(inner_w, inner_h) / 2  # corner distance
+    rgrad = cairo.RadialGradient(cx, cy, inner_r, cx, cy, outer_r)
+    rgrad.add_color_stop_rgba(0.0, *RAW_HONEY, 0.00)
+    rgrad.add_color_stop_rgba(0.7, *RAW_HONEY, 0.05)
+    rgrad.add_color_stop_rgba(1.0, *RAW_HONEY, 0.15)
     ctx.save()
+    ctx.clip()  # still clipped to rounded-rect from fill_preserve
+    ctx.set_source(rgrad)
+    ctx.paint()
+    ctx.restore()
+
+    # ── 4. Inner gold halo (faint rim inside the border) ───────────────
+    ctx.save()
+    _rounded_rect(ctx, inner_x, inner_y, inner_w, inner_h, radius)
     ctx.clip()
     ctx.set_line_width(2.0)
     ctx.set_source_rgba(*GOLD_HIGHLIGHT, 0.10)
-    _rounded_rect(ctx, pad + 1, pad + 1,
-                  w - 2 * pad - 2, h - 2 * pad - 2, radius - 1)
+    _rounded_rect(ctx, inner_x + 1, inner_y + 1,
+                  inner_w - 2, inner_h - 2, radius - 1)
     ctx.stroke()
     ctx.restore()
 
-    # ── 4. Top inner highlight strip (gold sheen, ~1px) ────────────────
-    sheen = cairo.LinearGradient(0, pad, 0, pad + 24)
-    sheen.add_color_stop_rgba(0.0, *GOLD_HIGHLIGHT, 0.18)
-    sheen.add_color_stop_rgba(1.0, *GOLD_HIGHLIGHT, 0.00)
-    ctx.set_source(sheen)
-    _rounded_rect(ctx, pad + 1, pad + 1,
-                  w - 2 * pad - 2, 24, radius - 1)
-    ctx.fill()
-
-    # ── 5. Warm border ─────────────────────────────────────────────────
-    ctx.set_line_width(1.0)
-    ctx.set_source_rgb(*PANEL_BORDER)
-    _rounded_rect(ctx, pad + 0.5, pad + 0.5,
-                  w - 2 * pad - 1, h - 2 * pad - 1, radius)
+    # ── 5. Border — 1.5px raw honey @ 40% alpha ────────────────────────
+    ctx.set_line_width(1.5)
+    ctx.set_source_rgba(*PANEL_BORDER, 0.40)
+    _rounded_rect(ctx, inner_x + 0.75, inner_y + 0.75,
+                  inner_w - 1.5, inner_h - 1.5, radius)
     ctx.stroke()
 
     # ── 6. Optional bright amber top edge (KPI tile accent) ────────────
     if top_edge is not None:
         ctx.save()
-        _rounded_rect(ctx, pad, pad, w - 2 * pad, h - 2 * pad, radius)
+        _rounded_rect(ctx, inner_x, inner_y, inner_w, inner_h, radius)
         ctx.clip()
-        edge_grad = cairo.LinearGradient(0, pad, 0, pad + 4)
+        edge_grad = cairo.LinearGradient(0, inner_y, 0, inner_y + 4)
         edge_grad.add_color_stop_rgba(0.0, *top_edge, 1.0)
         edge_grad.add_color_stop_rgba(1.0, *top_edge, 0.5)
         ctx.set_source(edge_grad)
-        ctx.rectangle(pad, pad, w - 2 * pad, 3)
+        ctx.rectangle(inner_x, inner_y, inner_w, 3)
         ctx.fill()
-        # Faint outer glow above the edge
         ctx.set_source_rgba(*top_edge, 0.35)
-        ctx.rectangle(pad, pad - 1, w - 2 * pad, 1)
+        ctx.rectangle(inner_x, inner_y - 1, inner_w, 1)
         ctx.fill()
         ctx.restore()
 
