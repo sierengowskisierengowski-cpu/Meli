@@ -868,3 +868,33 @@ box.card {
     border-color: alpha(@meli_raw_honey, 0.28);
     border-radius: 12px;
 }
+
+/* Jar centerpiece corner overlays — match mockup spec */
+label.hive-corner-title {
+    color: @meli_raw_honey;
+    font-size: 9px;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+label.hive-corner-value {
+    color: @meli_pale_comb;
+    text-shadow: 0 0 14px alpha(@meli_amber_glow, 0.4);
+}
+label.hive-corner-sub {
+    color: alpha(@meli_pale_comb, 0.55);
+    font-size: 10px;
+}
+label.hive-corner-strike {
+    color: @meli_pale_comb;
+    font-size: 13px;
+    font-weight: bold;
+}
+label.hive-corner-ip {
+    color: @meli_amber_glow;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    font-size: 10px;
+}
+label.hive-corner-strikes {
+    color: @meli_pale_comb;
+    text-shadow: 0 0 14px alpha(@meli_amber_glow, 0.4);
+}

@@ -152,15 +152,113 @@ class DashboardView(Gtk.Box):
             kpi_row.append(k)
         content.append(kpi_row)
 
-        # ─── 24h attack intensity + severity ─────────────────────────
-        mid = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=14)
+        # ─── HERO ROW (matches mockup): Big jar centerpiece LEFT +
+        #     Severity (24h) + Top Attackers stacked RIGHT ─────────────
+        hero = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=14)
 
-        # Intensity panel (2 cols worth)
+        # — LEFT: Jar centerpiece panel
+        jar_panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        jar_panel.add_css_class("hive-panel")
+        jar_panel.set_hexpand(True)
+        jar_panel.set_size_request(560, 460)
+
+        # The honey-jar drawing area, scaled up to ~440px tall
+        self._honey_pot = HoneyPotWidget()
+        self._honey_pot.set_size_request(380, 420)
+        self._honey_pot.set_content_width(380)
+        self._honey_pot.set_content_height(420)
+        self._honey_pot.set_hexpand(True)
+        self._honey_pot.set_vexpand(True)
+        self._honey_pot.set_halign(Gtk.Align.CENTER)
+        self._honey_pot.set_valign(Gtk.Align.CENTER)
+
+        # Overlay corner stats around the jar
+        jar_overlay = Gtk.Overlay()
+        jar_overlay.set_hexpand(True)
+        jar_overlay.set_vexpand(True)
+        jar_overlay.set_child(self._honey_pot)
+
+        def _corner(halign, valign, margin=14):
+            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+            box.set_halign(halign)
+            box.set_valign(valign)
+            box.set_margin_top(margin)
+            box.set_margin_bottom(margin)
+            box.set_margin_start(margin)
+            box.set_margin_end(margin)
+            return box
+
+        # TOP-RIGHT: CAPACITY 78% / 2,762 captured
+        cap_box = _corner(Gtk.Align.END, Gtk.Align.START)
+        cap_title = Gtk.Label(label="POT CAPACITY")
+        cap_title.add_css_class("hive-corner-title")
+        cap_title.set_halign(Gtk.Align.END)
+        self._cap_value = Gtk.Label(label="—")
+        self._cap_value.add_css_class("hive-corner-value")
+        self._cap_value.set_halign(Gtk.Align.END)
+        self._cap_sub = Gtk.Label(label="0 events captured")
+        self._cap_sub.add_css_class("hive-corner-sub")
+        self._cap_sub.set_halign(Gtk.Align.END)
+        cap_box.append(cap_title)
+        cap_box.append(self._cap_value)
+        cap_box.append(self._cap_sub)
+        jar_overlay.add_overlay(cap_box)
+
+        # BOTTOM-LEFT: LAST STRIKE
+        ls_box = _corner(Gtk.Align.START, Gtk.Align.END)
+        ls_title = Gtk.Label(label="LAST STRIKE")
+        ls_title.add_css_class("hive-corner-title")
+        ls_title.set_halign(Gtk.Align.START)
+        self._ls_value = Gtk.Label(label="—")
+        self._ls_value.add_css_class("hive-corner-strike")
+        self._ls_value.set_halign(Gtk.Align.START)
+        self._ls_ip = Gtk.Label(label="")
+        self._ls_ip.add_css_class("hive-corner-ip")
+        self._ls_ip.set_halign(Gtk.Align.START)
+        ls_box.append(ls_title)
+        ls_box.append(self._ls_value)
+        ls_box.append(self._ls_ip)
+        jar_overlay.add_overlay(ls_box)
+
+        # BOTTOM-RIGHT: STRIKES / HR
+        sh_box = _corner(Gtk.Align.END, Gtk.Align.END)
+        sh_title = Gtk.Label(label="STRIKES / HR")
+        sh_title.add_css_class("hive-corner-title")
+        sh_title.set_halign(Gtk.Align.END)
+        self._sh_value = Gtk.Label(label="0")
+        self._sh_value.add_css_class("hive-corner-strikes")
+        self._sh_value.set_halign(Gtk.Align.END)
+        sh_box.append(sh_title)
+        sh_box.append(self._sh_value)
+        jar_overlay.add_overlay(sh_box)
+
+        jar_panel.append(jar_overlay)
+        hero.append(jar_panel)
+
+        # — RIGHT: stacked Severity + Top Attackers
+        right_col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+        right_col.set_size_request(380, -1)
+
+        # Severity panel
+        sev_panel, sev_body = _panel(section="Severity (24h)")
+        self._sev_bars = HorizontalBars()
+        sev_body.append(self._sev_bars)
+        right_col.append(sev_panel)
+
+        # Top attackers panel
+        self._top_attk_panel, self._top_attk_body = _panel(
+            section="Top Attackers", accent="LAST 24H")
+        self._top_attk_panel.set_vexpand(True)
+        right_col.append(self._top_attk_panel)
+
+        hero.append(right_col)
+        content.append(hero)
+
+        # ─── 24h Attack Intensity (full width, below hero) ───────────
         intensity_panel, intensity_body = _panel(
             section="24h Attack Intensity", accent="HOURLY")
         self._intensity_chart = MiniBarChart(height=110)
         intensity_body.append(self._intensity_chart)
-        # x-axis labels
         axis = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         for lbl in ("00:00", "06:00", "12:00", "18:00", "NOW"):
             l = Gtk.Label(label=lbl)
@@ -169,50 +267,19 @@ class DashboardView(Gtk.Box):
             l.set_xalign(0.5)
             axis.append(l)
         intensity_body.append(axis)
-        intensity_panel.set_hexpand(True)
-        intensity_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        intensity_box.append(intensity_panel)
-        intensity_box.set_hexpand(True)
+        content.append(intensity_panel)
 
-        # Severity panel
-        sev_panel, sev_body = _panel(section="Severity Breakdown")
-        self._sev_bars = HorizontalBars()
-        sev_body.append(self._sev_bars)
-
-        mid.append(intensity_box)
-        intensity_box.set_hexpand(True)
-        # Make intensity ~2x severity by giving it more width hint
-        intensity_box.set_size_request(560, -1)
-        sev_panel.set_size_request(320, -1)
-        mid.append(sev_panel)
-        content.append(mid)
-
-        # ─── Top attacker IPs + Top credentials ──────────────────────
+        # ─── Top Credentials + Live Feed ─────────────────────────────
         tops = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=14)
-        tops.set_homogeneous(True)
-        self._top_attk_panel, self._top_attk_body = _panel(
-            section="Top Attacker IPs", accent="LAST 24H")
         self._top_cred_panel, self._top_cred_body = _panel(
             section="Top Credentials Tried")
-        tops.append(self._top_attk_panel)
-        tops.append(self._top_cred_panel)
-        content.append(tops)
-
-        # ─── Hive Activity (HoneyPot) + Live Event Feed ──────────────
-        hero = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=14)
-        hero_left, hero_left_body = _panel(
-            section="Hive Activity", accent="LIVE")
-        self._honey_pot = HoneyPotWidget()
-        hero_left_body.append(self._honey_pot)
-        hero_left.set_size_request(360, -1)
-
+        self._top_cred_panel.set_size_request(380, -1)
         self._ticker_panel, self._ticker_body = _panel(
             section="Live Event Feed", accent="STREAMING")
         self._ticker_panel.set_hexpand(True)
-
-        hero.append(hero_left)
-        hero.append(self._ticker_panel)
-        content.append(hero)
+        tops.append(self._top_cred_panel)
+        tops.append(self._ticker_panel)
+        content.append(tops)
 
         # ─── Honeypot Fleet ──────────────────────────────────────────
         self._fleet_panel, self._fleet_body = _panel(
@@ -378,6 +445,47 @@ class DashboardView(Gtk.Box):
         # HoneyPot fill (rolling 7-day window)
         if self._honey_pot is not None:
             self._honey_pot.set_event_count(last_7d)
+
+        # Jar corner stats — match mockup
+        import math as _math
+        max_cap = max(getattr(self._honey_pot, "_max_events", 5000), 1)
+        if last_7d <= 0:
+            pct = 0
+        else:
+            pct = int(round(
+                100.0 * _math.log10(last_7d + 1) / _math.log10(max_cap + 1)))
+            pct = max(0, min(100, pct))
+        self._cap_value.set_markup(
+            f"<span size='28000' weight='bold'>{pct}</span>"
+            f"<span size='14000'>%</span>")
+        self._cap_sub.set_text(f"{last_7d:,} events captured")
+
+        # Last strike from recent_data (newest first)
+        if recent_data:
+            ts, ip, _svc, _sev, _msg = recent_data[0]
+            try:
+                if ts.tzinfo is None:
+                    ts = ts.replace(tzinfo=timezone.utc)
+                delta = (datetime.now(timezone.utc) - ts).total_seconds()
+                if delta < 60:
+                    rel = f"{int(delta)} sec ago"
+                elif delta < 3600:
+                    rel = f"{int(delta // 60)} min ago"
+                elif delta < 86400:
+                    rel = f"{int(delta // 3600)} hr ago"
+                else:
+                    rel = f"{int(delta // 86400)} d ago"
+            except Exception:
+                rel = "—"
+            self._ls_value.set_text(rel)
+            self._ls_ip.set_text(ip or "")
+        else:
+            self._ls_value.set_text("none yet")
+            self._ls_ip.set_text("")
+
+        # Strikes per hour — last_1h is already that number
+        self._sh_value.set_markup(
+            f"<span size='28000' weight='bold'>{last_1h}</span>")
 
         # KPI tiles + animated sparklines
         self._spark_events.append(last_24h)
