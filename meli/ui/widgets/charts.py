@@ -377,9 +377,14 @@ class KpiTile(Gtk.Box):
         self.append(self._sub_lbl)
 
         if sparkline:
-            # Taller sparkline to match the mockup's prominent area chart
-            self._spark = Sparkline(height=72, color=accent)
-            self._spark.set_margin_top(8)
+            # Prominent area chart filling the bottom 40% of the card.
+            # vexpand + valign=END forces it to claim all leftover height
+            # below the labels instead of collapsing to its min size.
+            self._spark = Sparkline(height=96, color=accent)
+            self._spark.set_margin_top(10)
+            self._spark.set_vexpand(True)
+            self._spark.set_valign(Gtk.Align.FILL)
+            self._spark.set_hexpand(True)
             self.append(self._spark)
         else:
             self._spark = None

@@ -107,9 +107,9 @@ def paint_hive_panel(ctx: cairo.Context, w: float, h: float, *,
     outer_r = math.hypot(inner_w, inner_h) / 2  # corner distance
     rgrad = cairo.RadialGradient(cx, cy, inner_r, cx, cy, outer_r)
     rgrad.add_color_stop_rgba(0.0, *RAW_HONEY, 0.00)
-    rgrad.add_color_stop_rgba(0.45, *RAW_HONEY, 0.12)
-    rgrad.add_color_stop_rgba(0.78, *RAW_HONEY, 0.26)
-    rgrad.add_color_stop_rgba(1.0, *RAW_HONEY, 0.40)
+    rgrad.add_color_stop_rgba(0.40, *RAW_HONEY, 0.16)
+    rgrad.add_color_stop_rgba(0.72, *AMBER_GLOW, 0.32)
+    rgrad.add_color_stop_rgba(1.0, *AMBER_GLOW, 0.58)
     ctx.save()
     ctx.clip()  # still clipped to rounded-rect from fill_preserve
     ctx.set_source(rgrad)
@@ -146,22 +146,30 @@ def paint_hive_panel(ctx: cairo.Context, w: float, h: float, *,
         ctx.save()
         _rounded_rect(ctx, inner_x, inner_y, inner_w, inner_h, radius)
         ctx.clip()
-        # Horizontal multi-stop stripe
+        # Horizontal multi-stop stripe — bumped 3px → 6px so it survives
+        # AA against the rounded border and reads clearly from across the
+        # room (matches mockup's prominent honey-drip top edge).
+        stripe_h = 6.0
         stripe_grad = cairo.LinearGradient(
             inner_x, 0, inner_x + inner_w, 0)
         n = max(1, len(stops) - 1)
         for i, c in enumerate(stops):
             stripe_grad.add_color_stop_rgba(i / n, c[0], c[1], c[2], 1.0)
         ctx.set_source(stripe_grad)
-        ctx.rectangle(inner_x, inner_y, inner_w, 3)
+        ctx.rectangle(inner_x, inner_y, inner_w, stripe_h)
         ctx.fill()
-        # Soft outer halo just above the stripe so it reads as "lit"
+        # Bright bloom directly under the stripe (the "drip" wet-look)
         halo_c = stops[len(stops) // 2]
-        ctx.set_source_rgba(halo_c[0], halo_c[1], halo_c[2], 0.55)
-        ctx.rectangle(inner_x, inner_y - 1, inner_w, 1)
+        bloom = cairo.LinearGradient(0, inner_y + stripe_h,
+                                     0, inner_y + stripe_h + 14)
+        bloom.add_color_stop_rgba(0.0, halo_c[0], halo_c[1], halo_c[2], 0.55)
+        bloom.add_color_stop_rgba(1.0, halo_c[0], halo_c[1], halo_c[2], 0.0)
+        ctx.set_source(bloom)
+        ctx.rectangle(inner_x, inner_y + stripe_h, inner_w, 14)
         ctx.fill()
-        ctx.set_source_rgba(halo_c[0], halo_c[1], halo_c[2], 0.18)
-        ctx.rectangle(inner_x, inner_y + 3, inner_w, 4)
+        # Faint outer halo above the stripe edge for the "lit" feel
+        ctx.set_source_rgba(halo_c[0], halo_c[1], halo_c[2], 0.45)
+        ctx.rectangle(inner_x, inner_y - 1, inner_w, 1)
         ctx.fill()
         ctx.restore()
 
