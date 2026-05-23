@@ -1,6 +1,5 @@
-"""
-from meli.ui.widgets import HivePrefsGroup
-Meli first-run setup wizard.
+"""Meli first-run setup wizard.
+
 Steps: Welcome → Authorization → Password → 2FA → Honeypot → API Keys → GeoIP → Complete
 
 The Authorization step (added in v2.3.0) ensures the operator
@@ -18,6 +17,7 @@ import structlog
 from meli.auth import set_master_password, setup_totp, confirm_totp_setup
 from meli.config import get_config
 from meli import eula
+from meli.ui.widgets import HivePrefsGroup
 
 log = structlog.get_logger()
 
