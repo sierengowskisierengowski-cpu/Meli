@@ -27,6 +27,7 @@ from __future__ import annotations
 import hashlib
 import random
 from dataclasses import dataclass, field
+from pathlib import PurePosixPath
 
 # ── Filename pools ──────────────────────────────────────────────────────
 # Curated to look like a real Ubuntu/Debian box. Hand-picked.
@@ -176,6 +177,10 @@ class FakeFS:
         self.cwd = resolved or "/"
         return self.cwd
 
+    def _norm(self, path: str) -> str:
+        """Compatibility alias for callers expecting PR1's FakeFS API."""
+        return self.resolve(path)
+
     # ---- listing ------------------------------------------------------
 
     def list_dir(self, path: str | None = None) -> list[tuple[str, str]]:
@@ -199,6 +204,31 @@ class FakeFS:
         merged = self._merge_canaries(p, entries)
         self._dir_cache[p] = merged
         return merged
+
+    def listdir(self, path: str = ".") -> list[str]:
+        """Compatibility alias returning only entry names."""
+        return [name for name, _kind in self.list_dir(path)]
+
+    def is_file(self, path: str) -> bool:
+        resolved = self._norm(path)
+        try:
+            from meli.labyrinth import canary
+            if canary.is_canary(resolved) is not None:
+                return True
+        except Exception:
+            pass
+        parent = str(PurePosixPath(resolved).parent)
+        name = PurePosixPath(resolved).name
+        if resolved == "/":
+            return False
+        return any(entry_name == name and kind == "f"
+                   for entry_name, kind in self.list_dir(parent))
+
+    def is_dir(self, path: str) -> bool:
+        return not self.is_file(path)
+
+    def exists(self, path: str) -> bool:
+        return self.is_dir(path) or self.is_file(path)
 
     @staticmethod
     def _merge_canaries(dir_path: str, entries: list[tuple[str, str]]) -> list[tuple[str, str]]:
