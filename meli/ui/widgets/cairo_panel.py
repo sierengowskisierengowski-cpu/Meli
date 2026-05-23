@@ -30,6 +30,7 @@ from gi.repository import Adw, Gdk, Graphene, Gtk  # noqa: E402
 HIVE_BLACK     = (0x10 / 255, 0x0a / 255, 0x04 / 255)   # #100a04 — panel core
 RAW_HONEY      = (0xd4 / 255, 0xa0 / 255, 0x17 / 255)   # #d4a017 — edge bleed
 AMBER_GLOW     = (0xf5 / 255, 0x9e / 255, 0x0b / 255)   # outer halo + KPI top edge
+AMBER_TOP_EDGE = AMBER_GLOW                              # back-compat alias
 GOLD_HIGHLIGHT = (0xf5 / 255, 0xc8 / 255, 0x4a / 255)
 PANEL_BORDER   = RAW_HONEY                              # border uses raw honey @ 40%
 
