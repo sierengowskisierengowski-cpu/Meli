@@ -612,28 +612,37 @@ class DashboardView(Gtk.Box):
 
     def _rank_row(self, n: int, primary: str, secondary: str,
                   count: int) -> Gtk.Box:
+        from meli.ui.widgets import CairoBadge, CairoChip
         row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         row.add_css_class("rank-row")
-        badge = Gtk.Label(label=str(n))
-        badge.add_css_class("rank-badge")
-        badge.set_size_request(24, 24)
+
+        # Cairo-painted amber numbered badge (mockup-matching)
+        badge = CairoBadge(n, size=28)
+        badge.set_valign(Gtk.Align.CENTER)
         row.append(badge)
-        col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        col.set_hexpand(True)
+
+        # Primary text (IP / credential pair) — bold mono pale
         p = Gtk.Label(label=primary)
         p.add_css_class("text-pale")
         p.add_css_class("mono")
         p.set_xalign(0)
+        p.set_hexpand(True)
         p.set_ellipsize(3)
-        s = Gtk.Label(label=secondary)
-        s.add_css_class("text-muted")
-        s.set_xalign(0)
-        col.append(p)
-        col.append(s)
-        row.append(col)
+        row.append(p)
+
+        # Secondary as a Cairo chip (country / service tag)
+        if secondary:
+            # Take the first segment before " · " as the chip text
+            chip_text = secondary.split(" · ")[0].strip() or "—"
+            chip = CairoChip(chip_text[:16])
+            chip.set_valign(Gtk.Align.CENTER)
+            row.append(chip)
+
+        # Count on the far right, bright amber bold
         c = Gtk.Label(label=f"{count:,}")
         c.add_css_class("text-amber")
         c.add_css_class("mono")
+        c.set_valign(Gtk.Align.CENTER)
         row.append(c)
         return row
 

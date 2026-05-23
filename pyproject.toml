@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "meli"
-version = "2.7.9"
+version = "2.7.10"
 description = "Honeypot Command Center — Real-time threat intelligence dashboard for honeypot infrastructure"
 authors = [{ name = "Joseph Sierengowski" }]
 license = { text = "MIT" }

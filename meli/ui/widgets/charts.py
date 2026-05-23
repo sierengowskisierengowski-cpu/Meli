@@ -240,9 +240,12 @@ class HorizontalBars(Gtk.DrawingArea):
         if not rows:
             return
         vmax = max((r[1] for r in rows), default=1) or 1
-        label_w = 80
+        dot_x = 6
+        dot_r = 5
+        label_x = dot_x + dot_r * 2 + 8   # gap after the severity dot
+        label_w = 70
         count_w = 60
-        bar_x = label_w + 8
+        bar_x = label_x + label_w + 8
         bar_w_max = w - bar_x - count_w - 8
         row_h = h / max(1, len(rows))
 
@@ -252,10 +255,18 @@ class HorizontalBars(Gtk.DrawingArea):
         for i, (label, cnt, col) in enumerate(rows):
             cy = i * row_h + row_h / 2
 
+            # ── Severity colour dot (with soft halo) ──
+            ctx.set_source_rgba(col[0], col[1], col[2], 0.30)
+            ctx.arc(dot_x + dot_r, cy, dot_r + 3, 0, 2 * math.pi)
+            ctx.fill()
+            ctx.set_source_rgba(col[0], col[1], col[2], 1.0)
+            ctx.arc(dot_x + dot_r, cy, dot_r, 0, 2 * math.pi)
+            ctx.fill()
+
             # Label
             ctx.set_source_rgba(col[0], col[1], col[2], 0.95)
             te = ctx.text_extents(label)
-            ctx.move_to(0, cy + te.height / 2)
+            ctx.move_to(label_x, cy + te.height / 2)
             ctx.show_text(label)
 
             # Bar track
@@ -343,8 +354,9 @@ class KpiTile(Gtk.Box):
         self.append(self._sub_lbl)
 
         if sparkline:
-            self._spark = Sparkline(height=44, color=accent)
-            self._spark.set_margin_top(6)
+            # Taller sparkline to match the mockup's prominent area chart
+            self._spark = Sparkline(height=72, color=accent)
+            self._spark.set_margin_top(8)
             self.append(self._spark)
         else:
             self._spark = None
@@ -410,3 +422,112 @@ class KpiTile(Gtk.Box):
             except Exception:
                 pass
             self._anim_id = None
+
+
+# ── Cairo-painted ranked-row badge ────────────────────────────────────────
+class CairoBadge(Gtk.DrawingArea):
+    """Rounded-square amber gradient badge with a number centred inside.
+
+    Matches the mockup's TOP ATTACKERS / TOP CREDENTIALS rank badges:
+    bright amber gradient, faint outer glow, deep-comb numeral.
+    """
+
+    def __init__(self, number: int | str, size: int = 28,
+                 color: tuple[float, float, float] = AMBER_GLOW) -> None:
+        super().__init__()
+        self._number = str(number)
+        self._color = color
+        self._size = size
+        self.set_size_request(size, size)
+        self.set_content_width(size)
+        self.set_content_height(size)
+        self.set_draw_func(self._on_draw)
+
+    def _on_draw(self, _a, ctx: cairo.Context, w: int, h: int) -> None:
+        r, g, b = self._color
+        pad = 3.0
+        # Outer halo
+        ctx.set_source_rgba(r, g, b, 0.30)
+        self._round_rect(ctx, 0, 0, w, h, 7)
+        ctx.fill()
+        # Body gradient (top brighter, bottom darker)
+        grad = cairo.LinearGradient(0, pad, 0, h - pad)
+        grad.add_color_stop_rgb(0.0, min(1.0, r + 0.12),
+                                 min(1.0, g + 0.10), min(1.0, b + 0.04))
+        grad.add_color_stop_rgb(1.0, r * 0.75, g * 0.75, b * 0.65)
+        ctx.set_source(grad)
+        self._round_rect(ctx, pad, pad, w - 2 * pad, h - 2 * pad, 5)
+        ctx.fill_preserve()
+        # Inner top sheen
+        sheen = cairo.LinearGradient(0, pad, 0, pad + (h - 2 * pad) * 0.4)
+        sheen.add_color_stop_rgba(0.0, 1, 1, 1, 0.30)
+        sheen.add_color_stop_rgba(1.0, 1, 1, 1, 0)
+        ctx.set_source(sheen)
+        ctx.fill()
+        # Border
+        ctx.set_source_rgba(r * 0.5, g * 0.5, b * 0.4, 1.0)
+        ctx.set_line_width(1.0)
+        self._round_rect(ctx, pad + 0.5, pad + 0.5,
+                         w - 2 * pad - 1, h - 2 * pad - 1, 5)
+        ctx.stroke()
+        # Number (deep-comb, bold)
+        ctx.set_source_rgb(0.12, 0.07, 0.02)
+        ctx.select_font_face("Inter", cairo.FONT_SLANT_NORMAL,
+                             cairo.FONT_WEIGHT_BOLD)
+        ctx.set_font_size(13)
+        te = ctx.text_extents(self._number)
+        ctx.move_to(w / 2 - te.width / 2 - te.x_bearing,
+                    h / 2 - te.height / 2 - te.y_bearing)
+        ctx.show_text(self._number)
+
+    @staticmethod
+    def _round_rect(ctx, x, y, w, h, r):
+        r = min(r, w / 2, h / 2)
+        ctx.new_sub_path()
+        ctx.arc(x + w - r, y + r,     r, -math.pi / 2, 0)
+        ctx.arc(x + w - r, y + h - r, r, 0,             math.pi / 2)
+        ctx.arc(x + r,     y + h - r, r, math.pi / 2,   math.pi)
+        ctx.arc(x + r,     y + r,     r, math.pi,       3 * math.pi / 2)
+        ctx.close_path()
+
+
+# ── Cairo-painted country / tag chip ──────────────────────────────────────
+class CairoChip(Gtk.DrawingArea):
+    """Small rounded amber-outlined chip with text. Used for country tags
+    (Tor-DE, VPN-NL) and small tag pills next to ranked rows."""
+
+    def __init__(self, text: str,
+                 color: tuple[float, float, float] = AMBER_GLOW) -> None:
+        super().__init__()
+        self._text = text
+        self._color = color
+        # Measure text to size the widget
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, 1, 1)
+        ctx = cairo.Context(surface)
+        ctx.select_font_face("JetBrains Mono", cairo.FONT_SLANT_NORMAL,
+                             cairo.FONT_WEIGHT_BOLD)
+        ctx.set_font_size(10)
+        te = ctx.text_extents(text)
+        w = int(te.width + 16)
+        h = 18
+        self.set_size_request(w, h)
+        self.set_content_width(w)
+        self.set_content_height(h)
+        self.set_draw_func(self._on_draw)
+
+    def _on_draw(self, _a, ctx: cairo.Context, w: int, h: int) -> None:
+        r, g, b = self._color
+        ctx.set_source_rgba(r, g, b, 0.14)
+        CairoBadge._round_rect(ctx, 0, 0, w, h, 9)
+        ctx.fill_preserve()
+        ctx.set_source_rgba(r, g, b, 0.55)
+        ctx.set_line_width(1.0)
+        ctx.stroke()
+        ctx.set_source_rgba(r, g, b, 1.0)
+        ctx.select_font_face("JetBrains Mono", cairo.FONT_SLANT_NORMAL,
+                             cairo.FONT_WEIGHT_BOLD)
+        ctx.set_font_size(10)
+        te = ctx.text_extents(self._text)
+        ctx.move_to(w / 2 - te.width / 2 - te.x_bearing,
+                    h / 2 - te.height / 2 - te.y_bearing)
+        ctx.show_text(self._text)
