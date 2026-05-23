@@ -338,6 +338,8 @@ def paint_pot(cr: cairo.Context, width: int, height: int, *,
 class HoneyPotWidget(Gtk.DrawingArea):
     """Centerpiece honey-jar widget (mockup-matching cylindrical jar)."""
 
+    __gtype_name__ = "MeliHoneyPotWidget"
+
     def __init__(self, max_events: int = 5000,
                  window_label: str = "last 7 days"):
         super().__init__()

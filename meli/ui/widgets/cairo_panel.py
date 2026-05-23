@@ -193,6 +193,8 @@ class CairoPanel(Gtk.Box):
     `prepend()` are proxied to the content box.
     """
 
+    __gtype_name__ = "MeliCairoPanel"
+
     def __init__(self, *,
                  radius: float = 14.0,
                  padding: int = 18,
