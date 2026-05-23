@@ -344,7 +344,15 @@ class KpiTile(Gtk.Box):
         # CSS padding via the .kpi-tile rule (already 14px 16px). The
         # cairo paint below fills the entire widget bounds, and CSS
         # padding pushes children inward, so we get the right look.
-        self._accent_top_edge = (0xf5 / 255, 0x9e / 255, 0x0b / 255)
+        # Mockup-matching honey-drip top stripe: HONEY → AMBER → ORANGE
+        self._accent_top_edge = [
+            (0xd4 / 255, 0xa0 / 255, 0x17 / 255),   # raw honey
+            (0xf5 / 255, 0x9e / 255, 0x0b / 255),   # amber glow
+            (0xea / 255, 0x7c / 255, 0x1c / 255),   # orange drip
+        ]
+        # State dot in the top-right (ok=pale, warn=orange, critical=red)
+        self._state_dot = (0xfe / 255, 0xf3 / 255, 0xc7 / 255)
+        self._state = "ok"
 
         title_lbl = Gtk.Label(label=title.upper())
         title_lbl.add_css_class("kpi-title")
@@ -391,7 +399,8 @@ class KpiTile(Gtk.Box):
             paint_hive_panel(ctx, w, h,
                              radius=16.0,
                              top_edge=self._accent_top_edge,
-                             glow_strength=1.2)
+                             glow_strength=1.3,
+                             state_dot=self._state_dot)
         Gtk.Box.do_snapshot(self, snapshot)
 
     def set_value(self, target: int, sub: str | None = None,
@@ -407,6 +416,13 @@ class KpiTile(Gtk.Box):
             for s in ("ok", "warn", "critical"):
                 self._value_lbl.remove_css_class(f"kpi-{s}")
             self._value_lbl.add_css_class(f"kpi-{state}")
+            self._state = state
+            self._state_dot = {
+                "critical": (0xef / 255, 0x44 / 255, 0x44 / 255),
+                "warn":     (0xf9 / 255, 0x73 / 255, 0x16 / 255),
+                "ok":       (0xfe / 255, 0xf3 / 255, 0xc7 / 255),
+            }.get(state, (0xfe / 255, 0xf3 / 255, 0xc7 / 255))
+            self.queue_draw()
         if self._anim_id is None:
             self._anim_id = GLib.timeout_add(28, self._anim_step)
 

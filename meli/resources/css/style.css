@@ -22,7 +22,7 @@ window.meli-window {
     /* v2.3.0: subtle honeycomb pattern at very low opacity over the whole
      * window — same SVG used on the splash, but tiled across the entire
      * surface so the "hive" motif reads at any zoom level. */
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='56' height='48' viewBox='0 0 56 48'><g fill='none' stroke='%23d4a017' stroke-opacity='0.035' stroke-width='1'><polygon points='14,0 42,0 56,24 42,48 14,48 0,24'/></g></svg>");
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='56' height='48' viewBox='0 0 56 48'><g fill='none' stroke='%23d4a017' stroke-opacity='0.10' stroke-width='1'><polygon points='14,0 42,0 56,24 42,48 14,48 0,24'/></g></svg>");
     background-repeat: repeat;
 }
 

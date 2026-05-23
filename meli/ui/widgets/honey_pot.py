@@ -456,6 +456,40 @@ class HoneyPotWidget(Gtk.DrawingArea):
             show_label=False,  # corner overlays in dashboard own the labels
         )
 
+        # ── Bee flying around the jar (mockup-matching) ───────────────
+        # Elliptical orbit around the upper-right of the canvas with a
+        # gentle vertical bob; wings flap at ~12Hz for life.
+        t = self._wobble_phase  # 0..2π, advances each tick
+        orbit_cx, orbit_cy = CANVAS_W * 0.78, CANVAS_H * 0.22
+        rx, ry = CANVAS_W * 0.18, CANVAS_H * 0.10
+        bx = orbit_cx + rx * math.cos(t * 0.6)
+        by = orbit_cy + ry * math.sin(t * 0.6) + math.sin(t * 2.4) * 4
+        wing_a = 0.45 + 0.25 * math.sin(t * 8.0)  # flap
+        # Body
+        cr.save()
+        cr.translate(bx, by)
+        # Wings (behind body)
+        cr.set_source_rgba(0xfe / 255, 0xf3 / 255, 0xc7 / 255, wing_a)
+        cr.save(); cr.scale(1.0, 0.5)
+        cr.arc(-3, -10, 7, 0, 2 * math.pi); cr.fill()
+        cr.restore()
+        cr.save(); cr.scale(1.0, 0.5)
+        cr.arc( 3, -10, 7, 0, 2 * math.pi); cr.fill()
+        cr.restore()
+        # Body ellipse — pale cream
+        cr.set_source_rgba(0xfe / 255, 0xf3 / 255, 0xc7 / 255, 0.95)
+        cr.save(); cr.scale(1.0, 0.7)
+        cr.arc(0, 0, 10, 0, 2 * math.pi); cr.fill()
+        cr.restore()
+        # Black stripes
+        cr.set_source_rgba(0x10 / 255, 0x0a / 255, 0x04 / 255, 0.95)
+        cr.rectangle(-7, -4, 3, 8); cr.fill()
+        cr.rectangle( 0, -4, 3, 8); cr.fill()
+        # Tiny eye highlight
+        cr.set_source_rgba(0x10 / 255, 0x0a / 255, 0x04 / 255, 0.9)
+        cr.arc(-8, -1, 1.2, 0, 2 * math.pi); cr.fill()
+        cr.restore()
+
 
 # ── Static SVG export (used for headerbar / app icon) ────────────────────
 

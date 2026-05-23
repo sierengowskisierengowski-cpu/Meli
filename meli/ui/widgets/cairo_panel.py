@@ -46,10 +46,14 @@ def _rounded_rect(ctx: cairo.Context, x: float, y: float,
     ctx.close_path()
 
 
+ORANGE_DRIP   = (0xea / 255, 0x7c / 255, 0x1c / 255)   # #ea7c1c — honey drip orange
+
+
 def paint_hive_panel(ctx: cairo.Context, w: float, h: float, *,
                      radius: float = 14.0,
-                     top_edge: tuple[float, float, float] | None = None,
-                     glow_strength: float = 1.0) -> None:
+                     top_edge: tuple[float, float, float] | list | None = None,
+                     glow_strength: float = 1.0,
+                     state_dot: tuple[float, float, float] | None = None) -> None:
     """Paint the luminous hive panel chrome onto `ctx`, sized (w,h).
 
     Design spec:
@@ -70,10 +74,10 @@ def paint_hive_panel(ctx: cairo.Context, w: float, h: float, *,
     inner_h = max(1.0, h - 2 * pad)
 
     # ── 1. Outer amber halo (8px spread, 20% alpha falloff) ────────────
-    halo_steps = 8
+    halo_steps = 9
     for i in range(halo_steps, 0, -1):
-        # Linear falloff from 0.20 at i=1 to ~0.02 at i=halo_steps
-        a = (0.20 * (1.0 - (i - 1) / halo_steps)) * glow_strength
+        # Linear falloff from 0.28 at i=1 to ~0.03 at i=halo_steps
+        a = (0.28 * (1.0 - (i - 1) / halo_steps)) * glow_strength
         if a <= 0.005:
             continue
         ctx.set_source_rgba(*AMBER_GLOW, a)
@@ -103,9 +107,9 @@ def paint_hive_panel(ctx: cairo.Context, w: float, h: float, *,
     outer_r = math.hypot(inner_w, inner_h) / 2  # corner distance
     rgrad = cairo.RadialGradient(cx, cy, inner_r, cx, cy, outer_r)
     rgrad.add_color_stop_rgba(0.0, *RAW_HONEY, 0.00)
-    rgrad.add_color_stop_rgba(0.5, *RAW_HONEY, 0.08)
-    rgrad.add_color_stop_rgba(0.8, *RAW_HONEY, 0.18)
-    rgrad.add_color_stop_rgba(1.0, *RAW_HONEY, 0.28)
+    rgrad.add_color_stop_rgba(0.45, *RAW_HONEY, 0.12)
+    rgrad.add_color_stop_rgba(0.78, *RAW_HONEY, 0.26)
+    rgrad.add_color_stop_rgba(1.0, *RAW_HONEY, 0.40)
     ctx.save()
     ctx.clip()  # still clipped to rounded-rect from fill_preserve
     ctx.set_source(rgrad)
@@ -125,26 +129,57 @@ def paint_hive_panel(ctx: cairo.Context, w: float, h: float, *,
 
     # ── 5. Border — 1.5px raw honey @ 40% alpha ────────────────────────
     ctx.set_line_width(1.5)
-    ctx.set_source_rgba(*PANEL_BORDER, 0.40)
+    ctx.set_source_rgba(*PANEL_BORDER, 0.60)
     _rounded_rect(ctx, inner_x + 0.75, inner_y + 0.75,
                   inner_w - 1.5, inner_h - 1.5, radius)
     ctx.stroke()
 
-    # ── 6. Optional bright amber top edge (KPI tile accent) ────────────
+    # ── 6. Optional bright amber top stripe — honey drip (KPI tiles) ──
+    # Accepts either a single RGB (legacy) or a list of RGBs that get laid
+    # out left→right as gradient stops. The mockup uses a 3-stop
+    # HONEY → AMBER → ORANGE stripe with a strong outer halo.
     if top_edge is not None:
+        if isinstance(top_edge, list) and top_edge and isinstance(top_edge[0], (list, tuple)):
+            stops = list(top_edge)
+        else:
+            stops = [tuple(top_edge)]  # type: ignore[arg-type]
         ctx.save()
         _rounded_rect(ctx, inner_x, inner_y, inner_w, inner_h, radius)
         ctx.clip()
-        edge_grad = cairo.LinearGradient(0, inner_y, 0, inner_y + 4)
-        edge_grad.add_color_stop_rgba(0.0, *top_edge, 1.0)
-        edge_grad.add_color_stop_rgba(1.0, *top_edge, 0.5)
-        ctx.set_source(edge_grad)
+        # Horizontal multi-stop stripe
+        stripe_grad = cairo.LinearGradient(
+            inner_x, 0, inner_x + inner_w, 0)
+        n = max(1, len(stops) - 1)
+        for i, c in enumerate(stops):
+            stripe_grad.add_color_stop_rgba(i / n, c[0], c[1], c[2], 1.0)
+        ctx.set_source(stripe_grad)
         ctx.rectangle(inner_x, inner_y, inner_w, 3)
         ctx.fill()
-        ctx.set_source_rgba(*top_edge, 0.35)
+        # Soft outer halo just above the stripe so it reads as "lit"
+        halo_c = stops[len(stops) // 2]
+        ctx.set_source_rgba(halo_c[0], halo_c[1], halo_c[2], 0.55)
         ctx.rectangle(inner_x, inner_y - 1, inner_w, 1)
         ctx.fill()
+        ctx.set_source_rgba(halo_c[0], halo_c[1], halo_c[2], 0.18)
+        ctx.rectangle(inner_x, inner_y + 3, inner_w, 4)
+        ctx.fill()
         ctx.restore()
+
+    # ── 7. Optional state dot (top-right indicator) ────────────────────
+    if state_dot is not None:
+        dx = inner_x + inner_w - 14
+        dy = inner_y + 12
+        # Soft glow halo
+        ctx.set_source_rgba(*state_dot, 0.55)
+        ctx.arc(dx, dy, 6.0, 0, 2 * math.pi)
+        ctx.fill()
+        ctx.set_source_rgba(*state_dot, 0.30)
+        ctx.arc(dx, dy, 9.0, 0, 2 * math.pi)
+        ctx.fill()
+        # Crisp inner dot
+        ctx.set_source_rgba(*state_dot, 1.0)
+        ctx.arc(dx, dy, 3.5, 0, 2 * math.pi)
+        ctx.fill()
 
 
 class CairoPanel(Gtk.Box):
@@ -161,7 +196,7 @@ class CairoPanel(Gtk.Box):
     def __init__(self, *,
                  radius: float = 14.0,
                  padding: int = 18,
-                 top_edge: tuple[float, float, float] | None = None,
+                 top_edge: tuple[float, float, float] | list | None = None,
                  glow_strength: float = 1.0,
                  orientation: Gtk.Orientation = Gtk.Orientation.VERTICAL,
                  spacing: int = 10) -> None:
