@@ -6,7 +6,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
-MELI_VERSION="2.8.0"
+MELI_VERSION="2.8.1"
 INSTALL_DIR="/opt/meli"
 BIN_LINK="/usr/local/bin/meli"
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -37,7 +37,7 @@ cat << 'EOF'
   ██║╚██╔╝██║██╔══╝  ██║     ██║
   ██║ ╚═╝ ██║███████╗███████╗██║
   ╚═╝     ╚═╝╚══════╝╚══════╝╚═╝
-  Honeypot Command Center v2.8.0
+  Honeypot Command Center v2.8.1
   Author: Joseph Sierengowski
 
 EOF
@@ -207,6 +207,15 @@ install_app_files() {
         || die "pip install of Meli package failed — check the output above."
     ok "Meli package installed into $VENV."
 
+    # 4d.1 Install the web-frontend Python deps. The main install uses
+    # --no-deps (so it doesn't fight requirements.txt over PyGObject etc.),
+    # which means fastapi/uvicorn from pyproject.toml never get installed.
+    # Pull them in explicitly here so `meli-web` works out of the box.
+    log "Installing web API dependencies (fastapi, uvicorn)..."
+    "$VENV/bin/pip" install -q "fastapi>=0.110.0" "uvicorn[standard]>=0.27.0" \
+        || die "Failed to install fastapi/uvicorn — meli-web will not work."
+    ok "Web API dependencies installed."
+
     # 4e. Sanity check: ensure the venv can actually import meli and
     # report which version it sees. If this fails the launcher will
     # too, so bail out loud rather than letting the user discover it.
@@ -229,6 +238,23 @@ exec "$VENV/bin/python" -m meli "\$@"
 EOF
     sudo chmod +x "$BIN_LINK"
     ok "Launcher created at $BIN_LINK."
+
+    # 4f. meli-web launcher — same trick for the React/FastAPI frontend.
+    # The venv exposes /opt/meli/venv/bin/meli-web via the [project.scripts]
+    # entry point, but that venv bin dir isn't on the user's PATH, so we
+    # drop a shim into /usr/local/bin.
+    sudo tee "/usr/local/bin/meli-web" > /dev/null << EOF
+#!/usr/bin/env bash
+# meli-web launcher — installed by install.sh (v${MELI_VERSION})
+# Sets MELI_WEBUI_DIST / MELI_ELECTRON_DIR so the server finds the
+# bundled webui/dist + electron/ inside /opt/meli/app no matter what
+# directory the user ran this from.
+export MELI_WEBUI_DIST="$INSTALL_DIR/app/webui/dist"
+export MELI_ELECTRON_DIR="$INSTALL_DIR/app/electron"
+exec "$VENV/bin/python" -m meli.webapi "\$@"
+EOF
+    sudo chmod +x "/usr/local/bin/meli-web"
+    ok "Web launcher created at /usr/local/bin/meli-web."
 }
 
 # ── Phase 4b: Build the React web UI ──────────────────────────────────────────

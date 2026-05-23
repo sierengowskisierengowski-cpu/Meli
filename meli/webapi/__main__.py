@@ -26,8 +26,26 @@ from pathlib import Path
 
 
 def _default_electron_dir() -> Path:
-    """meli/meli/webapi/__main__.py → meli/electron"""
-    return Path(__file__).resolve().parent.parent.parent / "electron"
+    """Find the electron/ directory. After pip install we live in
+    site-packages, so a module-relative lookup misses /opt/meli/app/electron.
+    Resolve in priority order:
+      1. $MELI_ELECTRON_DIR             — explicit override
+      2. /opt/meli/app/electron         — canonical install location
+      3. <module>/../../../electron     — dev mode (running from source tree)
+      4. ./electron                     — last-ditch cwd-relative
+    """
+    env = os.environ.get("MELI_ELECTRON_DIR")
+    if env:
+        return Path(env).resolve()
+    candidates = [
+        Path("/opt/meli/app/electron"),
+        Path(__file__).resolve().parent.parent.parent / "electron",
+        Path.cwd() / "electron",
+    ]
+    for c in candidates:
+        if (c / "package.json").exists():
+            return c.resolve()
+    return candidates[0]
 
 
 def _wait_for_server(host: str, port: int, timeout: float = 8.0) -> bool:

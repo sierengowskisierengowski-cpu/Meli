@@ -4,15 +4,12 @@ The React app (meli/webui/) builds to ../../../webui/dist relative to this
 file. We mount that directory at / so the same uvicorn process serves both
 the static frontend and the /api/* endpoints.
 
-Endpoints (v1, MVP — return real data where the existing models expose it,
-otherwise return mockup-compatible placeholders so the UI never breaks):
+Endpoints (v1, MVP):
 
   GET  /api/health         server + db reachability
   GET  /api/dashboard      everything the dashboard needs in one round-trip
-  GET  /api/events?limit=  recent events for the live feed
-  GET  /api/severity       severity counts (24h)
-  GET  /api/attackers/top  top N attackers by event count
-  GET  /api/fleet          honeypot fleet status
+                           (sample data; will be wired to real models in v2.9)
+  GET  /api/events?limit=  recent events from meli.db (empty list when DB empty)
 
 When the database is empty or the schema can't be reached, endpoints fall
 back to mockup-shaped sample data so the user sees the dashboard render
@@ -31,9 +28,29 @@ from fastapi.staticfiles import StaticFiles
 
 
 # ── Paths ────────────────────────────────────────────────────────────────
-HERE = Path(__file__).resolve().parent
-# meli/meli/webapi/server.py → meli/webui/dist
-WEBUI_DIST = (HERE.parent.parent.parent / "webui" / "dist").resolve()
+# After pip install the module lives in site-packages, NOT in
+# /opt/meli/app/. So a module-relative path resolves wrong and the user
+# gets a 503 "webui not built" page. Resolve in priority order:
+#   1. $MELI_WEBUI_DIST              — explicit override
+#   2. /opt/meli/app/webui/dist      — canonical install location
+#   3. <module>/../../../webui/dist  — dev mode (running from source tree)
+#   4. ./webui/dist                  — last-ditch cwd-relative
+def _resolve_webui_dist() -> Path:
+    env = os.environ.get("MELI_WEBUI_DIST")
+    if env:
+        return Path(env).resolve()
+    candidates = [
+        Path("/opt/meli/app/webui/dist"),
+        Path(__file__).resolve().parent.parent.parent / "webui" / "dist",
+        Path.cwd() / "webui" / "dist",
+    ]
+    for c in candidates:
+        if c.exists():
+            return c.resolve()
+    return candidates[0]  # canonical even if missing → 503 message points there
+
+
+WEBUI_DIST = _resolve_webui_dist()
 
 
 # ── Backend hooks (graceful degrade if models can't load) ────────────────
@@ -171,9 +188,16 @@ if WEBUI_DIST.exists():
         # Any unknown path → serve index.html so the SPA router handles it.
         if path.startswith("api/"):
             raise HTTPException(404)
-        f = WEBUI_DIST / path
-        if f.is_file():
-            return FileResponse(str(f))
+        # Containment check: resolve target and ensure it stays inside
+        # WEBUI_DIST. Defends against `../` traversal even though we bind
+        # to 127.0.0.1 by default.
+        try:
+            target = (WEBUI_DIST / path).resolve()
+            target.relative_to(WEBUI_DIST)
+        except (ValueError, RuntimeError):
+            return FileResponse(str(WEBUI_DIST / "index.html"))
+        if target.is_file():
+            return FileResponse(str(target))
         return FileResponse(str(WEBUI_DIST / "index.html"))
 else:
     @app.get("/")
