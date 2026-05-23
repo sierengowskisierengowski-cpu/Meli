@@ -46,6 +46,8 @@ class Sparkline(Gtk.DrawingArea):
     the line, glow on the line itself, accent dot at the latest sample.
     """
 
+    __gtype_name__ = "MeliSparkline"
+
     def __init__(self, width: int = 220, height: int = 56,
                  color: tuple[float, float, float] = AMBER_GLOW) -> None:
         super().__init__()
@@ -330,6 +332,8 @@ class KpiTile(Gtk.Box):
     """Premium KPI card: title, big animated count-up number, sub-line,
     accent stripe, hover-glow (via CSS), trailing sparkline."""
 
+    __gtype_name__ = "MeliKpiTile"
+
     def __init__(self, title: str, subtitle: str = "",
                  accent: tuple[float, float, float] = AMBER_GLOW,
                  sparkline: bool = True) -> None:
@@ -373,9 +377,14 @@ class KpiTile(Gtk.Box):
         self.append(self._sub_lbl)
 
         if sparkline:
-            # Taller sparkline to match the mockup's prominent area chart
-            self._spark = Sparkline(height=72, color=accent)
-            self._spark.set_margin_top(8)
+            # Prominent area chart filling the bottom 40% of the card.
+            # vexpand + valign=END forces it to claim all leftover height
+            # below the labels instead of collapsing to its min size.
+            self._spark = Sparkline(height=96, color=accent)
+            self._spark.set_margin_top(10)
+            self._spark.set_vexpand(True)
+            self._spark.set_valign(Gtk.Align.FILL)
+            self._spark.set_hexpand(True)
             self.append(self._spark)
         else:
             self._spark = None
@@ -459,6 +468,8 @@ class CairoBadge(Gtk.DrawingArea):
     bright amber gradient, faint outer glow, deep-comb numeral.
     """
 
+    __gtype_name__ = "MeliCairoBadge"
+
     def __init__(self, number: int | str, size: int = 28,
                  color: tuple[float, float, float] = AMBER_GLOW) -> None:
         super().__init__()
@@ -522,6 +533,8 @@ class CairoBadge(Gtk.DrawingArea):
 class CairoChip(Gtk.DrawingArea):
     """Small rounded amber-outlined chip with text. Used for country tags
     (Tor-DE, VPN-NL) and small tag pills next to ranked rows."""
+
+    __gtype_name__ = "MeliCairoChip"
 
     def __init__(self, text: str,
                  color: tuple[float, float, float] = AMBER_GLOW) -> None:
