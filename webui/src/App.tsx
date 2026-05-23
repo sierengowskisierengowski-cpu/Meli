@@ -1,4 +1,4 @@
-import MeliShell from "./MeliShell";
+import { MeliShell } from "./MeliShell";
 
 export default function App() {
   return <MeliShell />;
