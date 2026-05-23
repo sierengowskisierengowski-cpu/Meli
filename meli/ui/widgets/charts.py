@@ -69,6 +69,12 @@ class Sparkline(Gtk.DrawingArea):
         if not vals:
             self._draw_empty(ctx, w, h)
             return
+        # Single-sample fallback: duplicate it so we still render a flat
+        # area + line + endpoint marker instead of an empty card. The
+        # dashboard's rolling deque starts with one reading right after
+        # refresh, and we want users to see SOMETHING immediately.
+        if len(vals) == 1:
+            vals = [vals[0], vals[0]]
         n = len(vals)
         vmax = max(vals) or 1.0
         pad_x, pad_y = 4, 6
@@ -77,7 +83,12 @@ class Sparkline(Gtk.DrawingArea):
         pts = []
         for i, v in enumerate(vals):
             x = pad_x + (i / max(1, n - 1)) * cw
-            y = pad_y + ch - (v / vmax) * ch
+            # Flat single-sample: render at ~65% height so the line and
+            # the area below it are both visible.
+            if vmax == 0 or all(v == vals[0] for v in vals):
+                y = pad_y + ch * 0.35
+            else:
+                y = pad_y + ch - (v / vmax) * ch
             pts.append((x, y))
 
         # Area fill (gradient)

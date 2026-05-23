@@ -10,7 +10,7 @@ import json
 import threading
 import structlog
 
-from meli.ui.widgets import HiveHeader, HivePrefsGroup
+from meli.ui.widgets import HiveHeader, HivePrefsGroup, CairoPanel
 
 log = structlog.get_logger()
 
@@ -43,8 +43,15 @@ class IpReputationView(Gtk.Box):
 
         scroll = Gtk.ScrolledWindow()
         scroll.set_vexpand(True)
-        self._results = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        self._results.set_margin_all(16)
+        # Wrap the results body in a CairoPanel so the view has chrome
+        # even before the user runs a lookup (the placeholder + future
+        # HivePrefsGroups render on top of the painted hive backdrop).
+        results_wrap = CairoPanel(padding=16, spacing=12)
+        results_wrap.set_margin_top(8)
+        results_wrap.set_margin_bottom(16)
+        results_wrap.set_margin_start(16)
+        results_wrap.set_margin_end(16)
+        self._results = results_wrap
         self._placeholder = Gtk.Label(label=(
             "Enter an IP address above to look it up across all configured enrichment services.\n\n"
             "Configured services: AbuseIPDB, GreyNoise, VirusTotal, Shodan, IPInfo\n"

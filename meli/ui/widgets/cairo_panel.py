@@ -103,8 +103,9 @@ def paint_hive_panel(ctx: cairo.Context, w: float, h: float, *,
     outer_r = math.hypot(inner_w, inner_h) / 2  # corner distance
     rgrad = cairo.RadialGradient(cx, cy, inner_r, cx, cy, outer_r)
     rgrad.add_color_stop_rgba(0.0, *RAW_HONEY, 0.00)
-    rgrad.add_color_stop_rgba(0.7, *RAW_HONEY, 0.05)
-    rgrad.add_color_stop_rgba(1.0, *RAW_HONEY, 0.15)
+    rgrad.add_color_stop_rgba(0.5, *RAW_HONEY, 0.08)
+    rgrad.add_color_stop_rgba(0.8, *RAW_HONEY, 0.18)
+    rgrad.add_color_stop_rgba(1.0, *RAW_HONEY, 0.28)
     ctx.save()
     ctx.clip()  # still clipped to rounded-rect from fill_preserve
     ctx.set_source(rgrad)

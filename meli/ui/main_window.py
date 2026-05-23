@@ -200,6 +200,18 @@ class MeliMainWindow(Adw.ApplicationWindow):
         atrium_btn.connect("clicked", lambda _: self._launch_atrium())
         sidebar.append(atrium_btn)
 
+        # Re-run the first-launch setup wizard. Useful for operators who
+        # want to change passwords, regenerate TOTP, re-acknowledge the
+        # disclaimer, or seed a new honeypot from inside the running app.
+        wiz_btn = Gtk.Button(label="✦  Setup Wizard")
+        wiz_btn.add_css_class("hive-atrium-btn")
+        wiz_btn.set_tooltip_text("Re-run the first-launch setup wizard")
+        wiz_btn.set_margin_start(12)
+        wiz_btn.set_margin_end(12)
+        wiz_btn.set_margin_top(4)
+        wiz_btn.connect("clicked", lambda _: self._launch_setup_wizard())
+        sidebar.append(wiz_btn)
+
         lock_btn = Gtk.Button(label="Lock")
         lock_btn.add_css_class("hive-lock-btn")
         lock_btn.set_margin_start(12)
@@ -210,6 +222,11 @@ class MeliMainWindow(Adw.ApplicationWindow):
         sidebar.append(lock_btn)
 
         return sidebar
+
+    def _launch_setup_wizard(self) -> None:
+        from meli.ui.setup_wizard import SetupWizard
+        wiz = SetupWizard(transient_for=self)
+        wiz.present()
 
     def _launch_atrium(self) -> None:
         """Open the Atrium kiosk window via the app-level action."""
