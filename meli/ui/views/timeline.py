@@ -9,7 +9,7 @@ from gi.repository import Gtk, Adw, GLib
 import threading
 import structlog
 
-from meli.ui.widgets import HiveHeader
+from meli.ui.widgets import HiveHeader, HivePrefsGroup
 from datetime import datetime, timedelta, timezone
 
 log = structlog.get_logger()
@@ -176,7 +176,7 @@ class TimelineView(Gtk.Box):
         self._content.append(legend)
 
         # Data table
-        grp = Adw.PreferencesGroup(title="Data Table")
+        grp = HivePrefsGroup(title="Data Table")
         for label, sev_counts in list(buckets.items())[-20:]:
             total = sum(sev_counts.values())
             if total > 0:

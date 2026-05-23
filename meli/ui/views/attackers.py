@@ -10,7 +10,7 @@ import threading
 import structlog
 from datetime import datetime, timedelta, timezone
 
-from meli.ui.widgets import HiveHeader
+from meli.ui.widgets import HiveHeader, HivePrefsGroup
 
 log = structlog.get_logger()
 
@@ -164,7 +164,7 @@ class AttackersView(Gtk.Box):
         title.add_css_class("monospace")
         self._detail_box.append(title)
 
-        grp = Adw.PreferencesGroup()
+        grp = HivePrefsGroup()
         for label, value in [
             ("Severity", max_sev or "—"),
             ("Total Events", f"{total:,}" if total else "0"),

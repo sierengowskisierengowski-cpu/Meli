@@ -10,7 +10,7 @@ import json
 import threading
 import structlog
 
-from meli.ui.widgets import HiveHeader
+from meli.ui.widgets import HiveHeader, HivePrefsGroup
 from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 
@@ -124,7 +124,7 @@ class BotnetView(Gtk.Box):
             return False
 
         for cluster in clusters:
-            grp = Adw.PreferencesGroup(
+            grp = HivePrefsGroup(
                 title=f"Cluster: {cluster['indicator']}",
                 description=f"{cluster['ip_count']} IPs — {cluster['event_count']} events"
             )

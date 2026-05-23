@@ -19,7 +19,10 @@ from __future__ import annotations
 import math
 
 import cairo
-from gi.repository import Gdk, Graphene, Gtk
+import gi
+gi.require_version("Gtk", "4.0")
+gi.require_version("Adw", "1")
+from gi.repository import Adw, Gdk, Graphene, Gtk  # noqa: E402
 
 
 # ── Palette (matches @meli_* CSS vars in style.css) ────────────────────
@@ -189,3 +192,32 @@ class CairoPanel(Gtk.Box):
                              top_edge=self._top_edge,
                              glow_strength=self._glow_strength)
         Gtk.Box.do_snapshot(self, snapshot)
+
+
+# ── Hive-painted Adw.PreferencesGroup ────────────────────────────────────
+class HivePrefsGroup(Adw.PreferencesGroup):
+    """Drop-in replacement for Adw.PreferencesGroup that paints the same
+    luminous hive-panel chrome behind itself (same cairo path as
+    CairoPanel). Use this anywhere a PreferencesGroup is the visual
+    container — settings rows, setup-wizard pages, alert-rule cards, etc.
+
+    Children (rows, listboxes) render on top of the cairo backdrop.
+    """
+    __gtype_name__ = "MeliHivePrefsGroup"
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Pull rows in from the panel edge so they sit inside the chrome
+        # padding and don't crash into the glow border.
+        for s in (self.set_margin_top, self.set_margin_bottom,
+                  self.set_margin_start, self.set_margin_end):
+            s(8)
+
+    def do_snapshot(self, snapshot: Gtk.Snapshot) -> None:
+        w = float(self.get_width())
+        h = float(self.get_height())
+        if w > 0 and h > 0:
+            rect = Graphene.Rect().init(0, 0, w, h)
+            ctx = snapshot.append_cairo(rect)
+            paint_hive_panel(ctx, w, h)
+        Adw.PreferencesGroup.do_snapshot(self, snapshot)

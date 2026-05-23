@@ -16,7 +16,12 @@ from meli.ui.widgets.charts import (
     PALE_COMB,
 )
 from meli.ui.widgets.hive_header import HiveHeader
-from meli.ui.widgets.cairo_panel import CairoPanel, paint_hive_panel, AMBER_TOP_EDGE
+from meli.ui.widgets.cairo_panel import (
+    CairoPanel,
+    HivePrefsGroup,
+    paint_hive_panel,
+    AMBER_TOP_EDGE,
+)
 
 __all__ = [
     "HoneyPotWidget",
@@ -29,6 +34,7 @@ __all__ = [
     "CairoChip",
     "HiveHeader",
     "CairoPanel",
+    "HivePrefsGroup",
     "paint_hive_panel",
     "AMBER_TOP_EDGE",
     "SEV_COLORS",

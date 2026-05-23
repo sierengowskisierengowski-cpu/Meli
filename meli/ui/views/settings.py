@@ -9,7 +9,7 @@ from gi.repository import Gtk, Adw, GLib
 import threading
 import structlog
 
-from meli.ui.widgets import HiveHeader
+from meli.ui.widgets import HiveHeader, HivePrefsGroup
 
 log = structlog.get_logger()
 
@@ -90,7 +90,7 @@ class SettingsView(Gtk.Box):
     def _build_general(self) -> None:
         from meli.config import get_config
         cfg = get_config()
-        grp = Adw.PreferencesGroup(title="General")
+        grp = HivePrefsGroup(title="General")
 
         refresh_row = Adw.SpinRow.new_with_range(5, 300, 5)
         refresh_row.set_title("Auto-refresh interval (seconds)")
@@ -109,7 +109,7 @@ class SettingsView(Gtk.Box):
         from meli.config import get_config
         cfg = get_config()
 
-        grp = Adw.PreferencesGroup(title="Authentication")
+        grp = HivePrefsGroup(title="Authentication")
 
         lock_row = Adw.SpinRow.new_with_range(0, 120, 5)
         lock_row.set_title("Auto-lock timeout (minutes, 0=disabled)")
@@ -135,7 +135,7 @@ class SettingsView(Gtk.Box):
     def _build_enrichment_apis(self) -> None:
         from meli.config import get_config
         cfg = get_config()
-        grp = Adw.PreferencesGroup(title="Enrichment API Keys")
+        grp = HivePrefsGroup(title="Enrichment API Keys")
 
         services = [
             ("abuseipdb", "AbuseIPDB"),
@@ -170,7 +170,7 @@ class SettingsView(Gtk.Box):
     def _build_alerts_and_notifications(self) -> None:
         from meli.config import get_config
         cfg = get_config()
-        grp = Adw.PreferencesGroup(title="Notification Channels")
+        grp = HivePrefsGroup(title="Notification Channels")
 
         fields = [
             ("discord_webhook", "Discord Webhook URL"),
@@ -208,7 +208,7 @@ class SettingsView(Gtk.Box):
         self._settings_content.append(test_box)
 
     def _build_honeypot_sources(self) -> None:
-        grp = Adw.PreferencesGroup(title="Configured Honeypots")
+        grp = HivePrefsGroup(title="Configured Honeypots")
         add_btn = Gtk.Button(label="Add Honeypot Source")
         add_btn.add_css_class("suggested-action")
         add_btn.connect("clicked", self._on_add_honeypot)
@@ -253,7 +253,7 @@ class SettingsView(Gtk.Box):
         except Exception:
             stats = {}
 
-        grp = Adw.PreferencesGroup(title="Database")
+        grp = HivePrefsGroup(title="Database")
         grp.add(Adw.ActionRow(title="Location", subtitle=stats.get("path", "—")))
         grp.add(Adw.ActionRow(title="Size", subtitle=stats.get("size_human", "—")))
         for table, count in (stats.get("table_counts") or {}).items():
@@ -272,7 +272,7 @@ class SettingsView(Gtk.Box):
         self._settings_content.append(btn_box)
 
     def _build_about(self) -> None:
-        grp = Adw.PreferencesGroup(title="About Meli")
+        grp = HivePrefsGroup(title="About Meli")
         for k, v in [
             ("Application", "Meli — Honeypot Command Center"),
             ("Version", "1.0.0"),

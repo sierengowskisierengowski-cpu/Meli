@@ -9,7 +9,7 @@ from gi.repository import Gtk, Adw, GLib
 import threading
 import structlog
 
-from meli.ui.widgets import HiveHeader
+from meli.ui.widgets import HiveHeader, HivePrefsGroup
 from datetime import datetime, timedelta, timezone
 
 log = structlog.get_logger()
@@ -91,7 +91,7 @@ class ServiceStatsView(Gtk.Box):
             return False
 
         for name, hp_type, enabled, last_event, total, last_24h, sev_data in data:
-            grp = Adw.PreferencesGroup(title=f"{name} ({hp_type})")
+            grp = HivePrefsGroup(title=f"{name} ({hp_type})")
 
             grp.add(Adw.ActionRow(title="Status",
                                    subtitle="Enabled" if enabled else "Disabled"))

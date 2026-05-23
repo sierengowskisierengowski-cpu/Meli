@@ -9,7 +9,7 @@ from gi.repository import Gtk, Adw, GLib
 import threading
 import structlog
 
-from meli.ui.widgets import HiveHeader
+from meli.ui.widgets import HiveHeader, HivePrefsGroup
 
 log = structlog.get_logger()
 
@@ -123,7 +123,7 @@ class PayloadsView(Gtk.Box):
             self._detail.remove(child)
             child = nxt
 
-        grp = Adw.PreferencesGroup(title=f"SHA256: {sha256 or '—'}")
+        grp = HivePrefsGroup(title=f"SHA256: {sha256 or '—'}")
 
         vt_btn = Gtk.Button(label="Check VirusTotal")
         vt_btn.add_css_class("suggested-action")

@@ -10,7 +10,7 @@ import json
 import threading
 import structlog
 
-from meli.ui.widgets import HiveHeader
+from meli.ui.widgets import HiveHeader, HivePrefsGroup
 
 log = structlog.get_logger()
 
@@ -97,7 +97,7 @@ class IpReputationView(Gtk.Box):
         self._results.append(title)
 
         geo = result.get("geo") or {}
-        geo_grp = Adw.PreferencesGroup(title="Geolocation (Offline GeoIP)")
+        geo_grp = HivePrefsGroup(title="Geolocation (Offline GeoIP)")
         for k, v in [("Country", geo.get("country_name")), ("City", geo.get("city")),
                      ("ASN", geo.get("asn")), ("Organization", geo.get("organization")),
                      ("Coordinates", f"{geo.get('latitude', '?')}, {geo.get('longitude', '?')}")]:
@@ -106,7 +106,7 @@ class IpReputationView(Gtk.Box):
 
         abuse = result.get("abuseipdb")
         if abuse:
-            grp = Adw.PreferencesGroup(title="AbuseIPDB")
+            grp = HivePrefsGroup(title="AbuseIPDB")
             grp.add(Adw.ActionRow(title="Abuse Score", subtitle=f"{abuse.get('abuse_score', '—')}%"))
             grp.add(Adw.ActionRow(title="Total Reports", subtitle=str(abuse.get("total_reports", "—"))))
             grp.add(Adw.ActionRow(title="Last Reported", subtitle=str(abuse.get("last_reported", "—"))[:19]))
@@ -116,7 +116,7 @@ class IpReputationView(Gtk.Box):
 
         gn = result.get("greynoise")
         if gn:
-            grp = Adw.PreferencesGroup(title="GreyNoise")
+            grp = HivePrefsGroup(title="GreyNoise")
             grp.add(Adw.ActionRow(title="Classification", subtitle=str(gn.get("classification", "—"))))
             grp.add(Adw.ActionRow(title="Noise", subtitle="Yes" if gn.get("noise") else "No"))
             grp.add(Adw.ActionRow(title="RIOT", subtitle="Yes" if gn.get("riot") else "No"))
@@ -124,14 +124,14 @@ class IpReputationView(Gtk.Box):
 
         vt = result.get("virustotal")
         if vt:
-            grp = Adw.PreferencesGroup(title="VirusTotal")
+            grp = HivePrefsGroup(title="VirusTotal")
             grp.add(Adw.ActionRow(title="Malicious Votes", subtitle=str(vt.get("malicious", "—"))))
             grp.add(Adw.ActionRow(title="Suspicious", subtitle=str(vt.get("suspicious", "—"))))
             self._results.append(grp)
 
         sh = result.get("shodan")
         if sh:
-            grp = Adw.PreferencesGroup(title="Shodan")
+            grp = HivePrefsGroup(title="Shodan")
             grp.add(Adw.ActionRow(title="Open Ports", subtitle=", ".join(str(p) for p in (sh.get("ports") or [])) or "—"))
             grp.add(Adw.ActionRow(title="Vulnerabilities", subtitle=", ".join(sh.get("vulns") or []) or "None found"))
             self._results.append(grp)

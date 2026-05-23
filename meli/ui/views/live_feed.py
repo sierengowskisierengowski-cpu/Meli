@@ -14,7 +14,7 @@ import json
 import threading
 import structlog
 
-from meli.ui.widgets import HiveHeader
+from meli.ui.widgets import HiveHeader, CairoPanel
 from collections import deque
 from datetime import datetime, timezone
 
@@ -82,8 +82,7 @@ class LiveFeedView(Gtk.Box):
         content.set_margin_end(16)
 
         # ── Control bar panel (Pause / Clear + severity pills + count)
-        ctl_panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        ctl_panel.add_css_class("hive-panel")
+        ctl_panel = CairoPanel(orientation=Gtk.Orientation.VERTICAL, spacing=10)
 
         ctl_panel.append(_section_header("Stream Controls", accent="LIVE"))
 
@@ -139,8 +138,7 @@ class LiveFeedView(Gtk.Box):
         content.append(ctl_panel)
 
         # ── Stream panel (ticker rows) ──────────────────────────────
-        stream_panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        stream_panel.add_css_class("hive-panel")
+        stream_panel = CairoPanel(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         stream_panel.set_vexpand(True)
         stream_panel.append(_section_header("Event Stream", accent="LAST 500"))
 

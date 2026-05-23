@@ -1,4 +1,5 @@
 """
+from meli.ui.widgets import HivePrefsGroup
 Meli first-run setup wizard.
 Steps: Welcome → Authorization → Password → 2FA → Honeypot → API Keys → GeoIP → Complete
 
@@ -196,7 +197,7 @@ class SetupWizard(Adw.Window):
         self._pw_error.add_css_class("error")
         self._pw_error.set_visible(False)
 
-        grp = Adw.PreferencesGroup()
+        grp = HivePrefsGroup()
         grp.add(self._pw1)
         grp.add(self._pw2)
 
@@ -238,7 +239,7 @@ class SetupWizard(Adw.Window):
         desc = Gtk.Label(label="Connect at least one honeypot data source.\nYou can add more in Settings → Honeypot Sources.")
         desc.set_wrap(True)
 
-        grp = Adw.PreferencesGroup()
+        grp = HivePrefsGroup()
         self._hp_name = Adw.EntryRow(title="Honeypot Name (e.g. cowrie-vps1)")
         self._hp_type = Adw.ComboRow(title="Type")
         model = Gtk.StringList.new(["cowrie", "heralding", "dionaea", "http", "glastopf", "mailoney", "generic_json"])
@@ -267,7 +268,7 @@ class SetupWizard(Adw.Window):
         desc = Gtk.Label(label="Optional: Enter API keys for IP enrichment.\nAll keys are optional and can be added in Settings later.")
         desc.set_wrap(True)
 
-        grp = Adw.PreferencesGroup()
+        grp = HivePrefsGroup()
         self._api_abuse = Adw.PasswordEntryRow(title="AbuseIPDB API Key")
         self._api_gn = Adw.PasswordEntryRow(title="GreyNoise API Key")
         self._api_vt = Adw.PasswordEntryRow(title="VirusTotal API Key")
@@ -292,7 +293,7 @@ class SetupWizard(Adw.Window):
         desc.set_wrap(True)
         desc.set_justify(Gtk.Justification.CENTER)
 
-        grp = Adw.PreferencesGroup()
+        grp = HivePrefsGroup()
         self._maxmind_key = Adw.PasswordEntryRow(title="MaxMind License Key")
         grp.add(self._maxmind_key)
 

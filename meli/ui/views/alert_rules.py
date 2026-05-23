@@ -10,7 +10,7 @@ import json
 import threading
 import structlog
 
-from meli.ui.widgets import HiveHeader
+from meli.ui.widgets import HiveHeader, HivePrefsGroup
 
 log = structlog.get_logger()
 
@@ -176,7 +176,7 @@ class AlertRulesView(Gtk.Box):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         box.set_margin_all(16)
 
-        grp = Adw.PreferencesGroup(title="Rule Definition")
+        grp = HivePrefsGroup(title="Rule Definition")
         name_row = Adw.EntryRow(title="Rule Name")
         sev_row = Adw.ComboRow(title="Minimum Severity")
         sev_model = Gtk.StringList.new(["INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL"])

@@ -10,7 +10,7 @@ import subprocess
 import threading
 import structlog
 
-from meli.ui.widgets import HiveHeader
+from meli.ui.widgets import HiveHeader, HivePrefsGroup
 
 log = structlog.get_logger()
 
@@ -99,7 +99,7 @@ class ReportsView(Gtk.Box):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         box.set_margin_all(16)
 
-        grp = Adw.PreferencesGroup(title="Report Options")
+        grp = HivePrefsGroup(title="Report Options")
         type_row = Adw.ComboRow(title="Type")
         type_model = Gtk.StringList.new(["daily", "weekly", "monthly", "custom"])
         type_row.set_model(type_model)
