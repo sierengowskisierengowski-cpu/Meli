@@ -27,6 +27,7 @@ from sqlalchemy import func, select, and_
 from meli import event_bus
 from meli.ui.widgets import (
     HoneyPotWidget, HiveHeader, KpiTile, MiniBarChart, HorizontalBars,
+    CairoPanel,
     AMBER_GLOW, RAW_HONEY, STING_RED, BURNT_ORANGE, BEESWAX, PALE_COMB,
 )
 
@@ -64,12 +65,18 @@ def _section_header(title: str, accent: str | None = None) -> Gtk.Box:
     return bar
 
 
-def _panel(*, section: str, accent: str | None = None) -> tuple[Gtk.Box, Gtk.Box]:
+def _panel(*, section: str, accent: str | None = None) -> tuple[Gtk.Widget, Gtk.Box]:
     """Create a hive-styled panel; returns (outer, body) so caller can
     append children into `body` after the section header is already in
-    place."""
-    outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-    outer.add_css_class("hive-panel")
+    place.
+
+    The outer widget is a `CairoPanel` — luminous honey gradient + glow
+    are painted directly via cairo (CSS background-image is unreliable
+    across GTK4 builds; this is the same proven path HoneyPotWidget uses
+    for the jar).
+    """
+    outer = CairoPanel(orientation=Gtk.Orientation.VERTICAL,
+                       spacing=12, padding=18, radius=14.0)
     outer.append(_section_header(section, accent))
     body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
     body.set_hexpand(True)
@@ -156,9 +163,10 @@ class DashboardView(Gtk.Box):
         #     Severity (24h) + Top Attackers stacked RIGHT ─────────────
         hero = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=14)
 
-        # — LEFT: Jar centerpiece panel
-        jar_panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        jar_panel.add_css_class("hive-panel")
+        # — LEFT: Jar centerpiece panel (cairo-painted hive backdrop)
+        jar_panel = CairoPanel(orientation=Gtk.Orientation.VERTICAL,
+                               spacing=8, padding=20, radius=16.0,
+                               glow_strength=1.4)
         jar_panel.set_hexpand(True)
         jar_panel.set_size_request(560, 460)
 

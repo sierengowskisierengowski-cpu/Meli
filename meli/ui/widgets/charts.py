@@ -314,11 +314,15 @@ class KpiTile(Gtk.Box):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         self.add_css_class("kpi-tile")
         self.set_hexpand(True)
-        # Margin-all via shim (set_margin_all is installed by meli/__init__.py)
-        self.set_margin_top(14)
-        self.set_margin_bottom(14)
-        self.set_margin_start(16)
-        self.set_margin_end(16)
+        # Inner padding so children don't crash into the cairo-painted
+        # border. set_margin_* on a Gtk.Box is outer margin; for inner
+        # padding we put margins on the first/last child labels. The
+        # simplest path is to give every direct child a uniform inset by
+        # margin-padding them via a wrapper... but it's cleaner to apply
+        # CSS padding via the .kpi-tile rule (already 14px 16px). The
+        # cairo paint below fills the entire widget bounds, and CSS
+        # padding pushes children inward, so we get the right look.
+        self._accent_top_edge = (0xf5 / 255, 0x9e / 255, 0x0b / 255)
 
         title_lbl = Gtk.Label(label=title.upper())
         title_lbl.add_css_class("kpi-title")
@@ -347,6 +351,25 @@ class KpiTile(Gtk.Box):
 
         self._accent = accent
         self.connect("destroy", self._on_destroy)
+
+    # Cairo-painted KPI tile chrome — luminous honey gradient + bright
+    # amber top edge + outer glow. Bypasses the CSS engine entirely (the
+    # same proven path HoneyPotWidget uses for the jar).
+    def do_snapshot(self, snapshot: Gtk.Snapshot) -> None:
+        # Local import to avoid a cycle at module-load time.
+        from meli.ui.widgets.cairo_panel import paint_hive_panel
+        import cairo as _cairo  # noqa: F401  (kept for type clarity)
+        from gi.repository import Graphene as _Graphene
+        w = float(self.get_width())
+        h = float(self.get_height())
+        if w > 0 and h > 0:
+            rect = _Graphene.Rect().init(0, 0, w, h)
+            ctx = snapshot.append_cairo(rect)
+            paint_hive_panel(ctx, w, h,
+                             radius=16.0,
+                             top_edge=self._accent_top_edge,
+                             glow_strength=1.2)
+        Gtk.Box.do_snapshot(self, snapshot)
 
     def set_value(self, target: int, sub: str | None = None,
                   state: str | None = None) -> None:
