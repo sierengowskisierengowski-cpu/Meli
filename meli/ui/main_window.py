@@ -142,32 +142,44 @@ class MeliMainWindow(Adw.ApplicationWindow):
             "Settings": "⛭",
         }
 
-        for i, (label, _icon, *_rest) in enumerate(_VIEWS):
-            btn = Gtk.ToggleButton()
-            btn.add_css_class("hive-nav-pill")
-            btn.add_css_class("flat")
-
+        def _make_pill_row(glyph_ch: str, label_text: str) -> Gtk.Box:
             row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
             row.set_margin_start(10)
             row.set_margin_end(10)
             row.set_margin_top(6)
             row.set_margin_bottom(6)
+            g = Gtk.Label(label=glyph_ch)
+            g.add_css_class("hive-nav-glyph")
+            g.set_size_request(16, -1)
+            l = Gtk.Label(label=label_text)
+            l.add_css_class("hive-nav-label")
+            l.set_halign(Gtk.Align.START)
+            l.set_hexpand(True)
+            row.append(g)
+            row.append(l)
+            return row
 
-            glyph = Gtk.Label(label=_GLYPHS.get(label, "·"))
-            glyph.add_css_class("hive-nav-glyph")
-            glyph.set_size_request(16, -1)
-            lbl = Gtk.Label(label=label)
-            lbl.add_css_class("hive-nav-label")
-            lbl.set_halign(Gtk.Align.START)
-            lbl.set_hexpand(True)
-            row.append(glyph)
-            row.append(lbl)
-            btn.set_child(row)
-
+        for i, (label, _icon, *_rest) in enumerate(_VIEWS):
+            btn = Gtk.ToggleButton()
+            btn.add_css_class("hive-nav-pill")
+            btn.add_css_class("flat")
+            btn.set_child(_make_pill_row(_GLYPHS.get(label, "·"), label))
             idx = i
             btn.connect("toggled", self._on_nav_toggled, idx)
             nav_box.append(btn)
             self._nav_buttons.append(btn)
+
+        # Setup Wizard — rendered as a sidebar nav pill (same chrome as
+        # every other nav item) so it visually belongs in the list, but
+        # it opens a modal dialog instead of swapping the content stack.
+        # Plain Button (not ToggleButton) since it never stays "active".
+        wiz_pill = Gtk.Button()
+        wiz_pill.add_css_class("hive-nav-pill")
+        wiz_pill.add_css_class("flat")
+        wiz_pill.set_child(_make_pill_row("✺", "Setup Wizard"))
+        wiz_pill.set_tooltip_text("Re-run the first-launch setup wizard")
+        wiz_pill.connect("clicked", lambda _: self._launch_setup_wizard())
+        nav_box.append(wiz_pill)
 
         scroll.set_child(nav_box)
         sidebar.append(scroll)
@@ -200,17 +212,8 @@ class MeliMainWindow(Adw.ApplicationWindow):
         atrium_btn.connect("clicked", lambda _: self._launch_atrium())
         sidebar.append(atrium_btn)
 
-        # Re-run the first-launch setup wizard. Useful for operators who
-        # want to change passwords, regenerate TOTP, re-acknowledge the
-        # disclaimer, or seed a new honeypot from inside the running app.
-        wiz_btn = Gtk.Button(label="✦  Setup Wizard")
-        wiz_btn.add_css_class("hive-atrium-btn")
-        wiz_btn.set_tooltip_text("Re-run the first-launch setup wizard")
-        wiz_btn.set_margin_start(12)
-        wiz_btn.set_margin_end(12)
-        wiz_btn.set_margin_top(4)
-        wiz_btn.connect("clicked", lambda _: self._launch_setup_wizard())
-        sidebar.append(wiz_btn)
+        # (Setup Wizard moved into the nav list above as a pill, to match
+        # the mockup. Only Launch Atrium + Lock remain as bottom buttons.)
 
         lock_btn = Gtk.Button(label="Lock")
         lock_btn.add_css_class("hive-lock-btn")
