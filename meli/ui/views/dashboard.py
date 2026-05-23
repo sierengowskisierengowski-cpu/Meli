@@ -313,10 +313,25 @@ class DashboardView(Gtk.Box):
                 recent = db.execute(
                     select(Event).order_by(Event.timestamp.desc()).limit(8)
                 ).scalars().all()
+                # Event model has parsed_data (JSON text), not event_data.
+                def _msg(ev):
+                    raw = getattr(ev, "parsed_data", None)
+                    if not raw:
+                        return ""
+                    try:
+                        import json as _json
+                        d = _json.loads(raw) if isinstance(raw, str) else raw
+                        if isinstance(d, dict):
+                            return str(d.get("message")
+                                       or d.get("msg")
+                                       or d.get("command")
+                                       or d.get("input")
+                                       or "")[:120]
+                    except Exception:
+                        pass
+                    return ""
                 recent_data = [(e.timestamp, e.source_ip, e.honeypot_service,
-                                e.severity, (e.event_data or {}).get(
-                                    "message", "") if isinstance(e.event_data,
-                                                                  dict) else "")
+                                e.severity, _msg(e))
                                for e in recent]
 
                 # Fleet
