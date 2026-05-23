@@ -6,7 +6,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
-MELI_VERSION="2.2.2"
+MELI_VERSION="2.8.0"
 INSTALL_DIR="/opt/meli"
 BIN_LINK="/usr/local/bin/meli"
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -37,7 +37,7 @@ cat << 'EOF'
   ██║╚██╔╝██║██╔══╝  ██║     ██║
   ██║ ╚═╝ ██║███████╗███████╗██║
   ╚═╝     ╚═╝╚══════╝╚══════╝╚═╝
-  Honeypot Command Center v2.2.2
+  Honeypot Command Center v2.8.0
   Author: Joseph Sierengowski
 
 EOF
@@ -229,6 +229,68 @@ exec "$VENV/bin/python" -m meli "\$@"
 EOF
     sudo chmod +x "$BIN_LINK"
     ok "Launcher created at $BIN_LINK."
+}
+
+# ── Phase 4b: Build the React web UI ──────────────────────────────────────────
+# The React UI lives in meli/webui/. We need Node to compile it once into
+# meli/webui/dist/ (static files). The FastAPI server (`meli-web`) serves
+# that dist directory at /. After build the dist files are rsync'd into
+# /opt/meli/app/webui/dist by install_app_files (Phase 4 already ran), so
+# we re-run a focused rsync here.
+build_webui() {
+    log "Phase 4b: Building React web UI (meli/webui)..."
+
+    if ! command -v node >/dev/null 2>&1; then
+        warn "Node.js not found. Installing it via the system package manager..."
+        local distro
+        distro=$(detect_distro)
+        case "$distro" in
+            arch|manjaro|endeavouros|garuda)
+                sudo pacman -Sy --needed --noconfirm nodejs npm ;;
+            ubuntu|pop|linuxmint|elementary|debian)
+                sudo apt-get install -y nodejs npm ;;
+            fedora|rhel|centos|rocky)
+                sudo dnf install -y nodejs npm ;;
+            *)
+                die "Cannot auto-install Node on '$distro'. Install Node 18+ manually then re-run." ;;
+        esac
+    fi
+    ok "Node $(node --version), npm $(npm --version)"
+
+    cd "$APP_DIR/webui"
+    log "  npm install (webui)..."
+    npm install --no-audit --no-fund --silent
+    log "  npm run build (webui)..."
+    npm run build --silent
+    cd "$APP_DIR"
+
+    # Mirror the freshly built dist into the install dir so the server
+    # at /opt/meli/app/webui/dist sees it.
+    if [ -d "$INSTALL_DIR/app/webui" ]; then
+        sudo rm -rf "$INSTALL_DIR/app/webui/dist"
+    fi
+    sudo mkdir -p "$INSTALL_DIR/app/webui"
+    sudo cp -r "$APP_DIR/webui/dist" "$INSTALL_DIR/app/webui/dist"
+    ok "React UI built and copied to $INSTALL_DIR/app/webui/dist"
+}
+
+# ── Phase 4c (optional): Electron shell ───────────────────────────────────────
+# Only runs when --with-electron is passed. Installs Electron + minimal
+# main.js wrapper so `meli-web --native` opens a borderless desktop window.
+install_electron_shell() {
+    log "Phase 4c: Installing Electron shell (opt-in, --with-electron)..."
+    cd "$APP_DIR/electron"
+    log "  npm install (electron)... this downloads ~150 MB"
+    npm install --no-audit --no-fund --silent
+    cd "$APP_DIR"
+
+    # Mirror node_modules into the install dir.
+    if [ -d "$INSTALL_DIR/app/electron" ]; then
+        sudo rm -rf "$INSTALL_DIR/app/electron/node_modules"
+    fi
+    sudo mkdir -p "$INSTALL_DIR/app/electron"
+    sudo cp -r "$APP_DIR/electron/node_modules" "$INSTALL_DIR/app/electron/node_modules"
+    ok "Electron shell installed. Run: meli-web --native"
 }
 
 # ── Phase 5: Desktop integration ─────────────────────────────────────────────
@@ -463,13 +525,22 @@ main() {
 
     local skip_system=false
     local phase_only=""
+    local with_electron=false
+    local skip_webui=false
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --skip-system-deps) skip_system=true ;;
+            --with-electron)    with_electron=true ;;
+            --skip-webui)       skip_webui=true ;;
             --phase) phase_only="$2"; shift ;;
             --help|-h)
-                echo "Usage: $0 [--skip-system-deps] [--phase 1-9]"
+                echo "Usage: $0 [--skip-system-deps] [--with-electron] [--skip-webui] [--phase 1-9]"
+                echo ""
+                echo "  --with-electron   Install Electron shell so 'meli-web --native' works"
+                echo "                    (downloads ~150 MB). Without it, 'meli-web' opens"
+                echo "                    in your default browser instead."
+                echo "  --skip-webui      Don't build the React UI (GTK4 'meli' still works)"
                 exit 0
                 ;;
         esac
@@ -491,12 +562,29 @@ main() {
     setup_venv
     install_python_deps
     install_app_files
+    if [ "$skip_webui" = false ]; then
+        build_webui
+        if [ "$with_electron" = true ]; then
+            install_electron_shell
+        fi
+    else
+        warn "Skipping React UI build (--skip-webui); 'meli-web' won't work."
+    fi
     install_desktop
     install_services
     configure_mosquitto
     create_user_dirs
     init_database
     print_summary
+
+    echo ""
+    echo "  ${BOLD}Two ways to launch:${NC}"
+    echo "    ${BOLD}meli${NC}          → GTK4 desktop app (original)"
+    echo "    ${BOLD}meli-web${NC}      → React UI in your browser"
+    if [ "$with_electron" = true ]; then
+        echo "    ${BOLD}meli-web --native${NC} → React UI in a borderless Electron window"
+    fi
+    echo ""
 }
 
 main "$@"
