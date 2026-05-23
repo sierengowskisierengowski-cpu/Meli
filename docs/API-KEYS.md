@@ -1,5 +1,7 @@
 # API Keys Setup Guide
 
+**v2.2.2**
+
 All enrichment API keys are optional. Meli works fully without them — you only lose the external reputation scores. GeoLite2 geolocation is always available with a free MaxMind account (no per-query costs).
 
 ## MaxMind GeoLite2 (Geolocation — Strongly Recommended)

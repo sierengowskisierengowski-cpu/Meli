@@ -1,5 +1,7 @@
 # Meli Configuration Reference
 
+**v2.2.2**
+
 Config file: `~/.config/meli/config.yaml`
 Permissions: `600` (only your user can read it)
 
@@ -9,7 +11,7 @@ All settings can be changed via Settings in the GUI. This document describes the
 
 ```yaml
 general:
-  language: en                    # UI language (en only in v1.0)
+  language: en                    # UI language (en only)
   datetime_format: "%Y-%m-%d %H:%M:%S"
   default_view: dashboard         # View shown on startup
   auto_refresh_seconds: 30        # Dashboard auto-refresh interval
@@ -27,7 +29,7 @@ auth:
   failed_attempts_limit: 9  # Hard limit before restart required
   session_timeout_hours: 24
   totp_enabled: false       # Set by the 2FA setup flow
-  yubikey_enabled: false    # Planned for v1.2
+  yubikey_enabled: false    # Planned (not yet implemented)
 ```
 
 ## database
@@ -35,7 +37,7 @@ auth:
 ```yaml
 database:
   path: ~/.local/share/meli/meli.db
-  backend: sqlite           # sqlite only in v1.0
+  backend: sqlite           # sqlite (PostgreSQL planned)
   retention_days: 365       # Auto-delete events older than this
   auto_backup: true
   backup_frequency: weekly  # daily | weekly | monthly
@@ -161,4 +163,23 @@ logging:
   path: ~/.local/share/meli/logs/
   max_size_mb: 100
   backup_count: 5
+```
+
+## labyrinth
+
+```yaml
+labyrinth:
+  enabled: false
+  host: "0.0.0.0"
+  telnet_port: 2323
+  ssh_enabled: true
+  ssh_port: 2222
+  max_sessions: 128       # Concurrent sessions cap (both protocols)
+  taunts:
+    intensity: subtle     # off | subtle | full
+```
+
+The Labyrinth daemon starts as part of `meli-ingest` when `enabled: true`. To start it manually:
+```bash
+python -m meli --daemon ingest
 ```

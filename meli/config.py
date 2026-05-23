@@ -12,9 +12,11 @@ from typing import Any
 
 log = structlog.get_logger()
 
-_CONFIG_DIR = Path(os.environ.get("MELI_CONFIG_DIR", Path.home() / ".config" / "meli"))
-_DATA_DIR = Path(os.environ.get("MELI_DATA_DIR", Path.home() / ".local" / "share" / "meli"))
-_CONFIG_FILE = _CONFIG_DIR / "config.yaml"
+# Module-level defaults used only as fallbacks; actual paths are resolved
+# per-instance so that environment variables set after import (e.g., in
+# test fixtures) are honoured correctly.
+_DEFAULT_CONFIG_DIR = Path.home() / ".config" / "meli"
+_DEFAULT_DATA_DIR = Path.home() / ".local" / "share" / "meli"
 
 DEFAULTS: dict[str, Any] = {
     "general": {
@@ -35,15 +37,15 @@ DEFAULTS: dict[str, Any] = {
         "yubikey_enabled": False,
     },
     "database": {
-        "path": str(_DATA_DIR / "meli.db"),
+        "path": "",  # filled in at construction time
         "backend": "sqlite",
         "retention_days": 365,
         "auto_backup": True,
         "backup_frequency": "weekly",
-        "backup_path": str(_DATA_DIR / "backups"),
+        "backup_path": "",  # filled in at construction time
     },
     "storage": {
-        "payloads_path": str(_DATA_DIR / "payloads"),
+        "payloads_path": "",  # filled in at construction time
         "max_payload_gb": 10,
         "payload_retention_days": 90,
     },
@@ -73,8 +75,8 @@ DEFAULTS: dict[str, Any] = {
             "shodan": {"enabled": False, "api_key": None, "daily_limit": 100},
             "ipinfo": {"enabled": False, "api_key": None, "daily_limit": 50000},
         },
-        "geoip_city_db": str(_DATA_DIR / "geoip" / "GeoLite2-City.mmdb"),
-        "geoip_asn_db": str(_DATA_DIR / "geoip" / "GeoLite2-ASN.mmdb"),
+        "geoip_city_db": "",  # filled in at construction time
+        "geoip_asn_db": "",   # filled in at construction time
         "maxmind_license_key": None,
     },
     "alerts": {
@@ -105,7 +107,7 @@ DEFAULTS: dict[str, Any] = {
         "email_to": None,
     },
     "reports": {
-        "output_path": str(_DATA_DIR / "reports"),
+        "output_path": "",  # filled in at construction time
         "scheduled_daily": False,
         "scheduled_weekly": True,
         "scheduled_monthly": True,
@@ -118,7 +120,7 @@ DEFAULTS: dict[str, Any] = {
     },
     "logging": {
         "level": "INFO",
-        "path": str(_DATA_DIR / "logs"),
+        "path": "",  # filled in at construction time
         "max_size_mb": 100,
         "backup_count": 5,
     },
@@ -135,30 +137,16 @@ DEFAULTS: dict[str, Any] = {
         "sound_enabled": True,
     },
     "atrium": {
-        # Full-screen kiosk display for wall-mounted monitors.
-        # Launch via the sidebar button, `Ctrl+F12`, or `meli --kiosk`.
         "audio_enabled": True,
         "audio_volume": 0.7,
-        # If True, --kiosk launches *without* showing the lock screen
-        # first (for unattended wall-display boxes where the master
-        # password lives in a sealed envelope, not at the keyboard).
         "bypass_lock_in_kiosk_mode": False,
     },
     "labyrinth": {
-        # Opt-in: starting a tarpit on a real interface should always
-        # be a deliberate choice, never a side-effect of installing.
         "enabled": False,
         "bind_host": "0.0.0.0",
         "bind_port": 2323,
         "max_sessions": 200,
-        # Taunt personality: "off" / "subtle" / "full".
-        # full = HA HA gotcha banners on login + tripwires + exit (default).
-        # subtle = only on disconnect + destructive-command tripwires.
-        # off = silent tarpit, looks like a real (slow) box.
         "taunt_intensity": "full",
-        # SSH listener (paramiko). Independent of the telnet bind — you
-        # can run either, both, or neither. Host key is auto-generated
-        # at ~/.local/share/meli/labyrinth/host_rsa_key on first start.
         "ssh_enabled": False,
         "ssh_bind_port": 2222,
     },
@@ -169,36 +157,58 @@ class Config:
     """Application configuration with YAML persistence."""
 
     def __init__(self) -> None:
+        # Resolve dirs at construction time so that env-var overrides (e.g.
+        # MELI_CONFIG_DIR set by test fixtures via monkeypatch) are picked up
+        # even when the module was imported before the env var was set.
+        self._config_dir = Path(
+            os.environ.get("MELI_CONFIG_DIR", str(_DEFAULT_CONFIG_DIR))
+        )
+        self._data_dir = Path(
+            os.environ.get("MELI_DATA_DIR", str(_DEFAULT_DATA_DIR))
+        )
+        self._config_file = self._config_dir / "config.yaml"
         self._data: dict[str, Any] = {}
         self._ensure_dirs()
+        self._patch_defaults()
         self.load()
 
+    def _patch_defaults(self) -> None:
+        """Fill path-valued defaults that depend on the resolved data dir."""
+        d = self._data_dir
+        DEFAULTS["database"]["path"] = str(d / "meli.db")
+        DEFAULTS["database"]["backup_path"] = str(d / "backups")
+        DEFAULTS["storage"]["payloads_path"] = str(d / "payloads")
+        DEFAULTS["enrichment"]["geoip_city_db"] = str(d / "geoip" / "GeoLite2-City.mmdb")
+        DEFAULTS["enrichment"]["geoip_asn_db"] = str(d / "geoip" / "GeoLite2-ASN.mmdb")
+        DEFAULTS["reports"]["output_path"] = str(d / "reports")
+        DEFAULTS["logging"]["path"] = str(d / "logs")
+
     def _ensure_dirs(self) -> None:
-        _CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-        _CONFIG_DIR.chmod(0o700)
-        _DATA_DIR.mkdir(parents=True, exist_ok=True)
-        _DATA_DIR.chmod(0o700)
+        self._config_dir.mkdir(parents=True, exist_ok=True)
+        self._config_dir.chmod(0o700)
+        self._data_dir.mkdir(parents=True, exist_ok=True)
+        self._data_dir.chmod(0o700)
         for sub in ["geoip", "cache/enrichment", "reports/daily", "reports/weekly",
                     "reports/monthly", "exports", "logs", "payloads", "backups"]:
-            (_DATA_DIR / sub).mkdir(parents=True, exist_ok=True)
+            (self._data_dir / sub).mkdir(parents=True, exist_ok=True)
 
     def load(self) -> None:
-        if _CONFIG_FILE.exists():
+        if self._config_file.exists():
             try:
-                with open(_CONFIG_FILE) as f:
+                with open(self._config_file) as f:
                     loaded = yaml.safe_load(f) or {}
                 self._data = self._deep_merge(DEFAULTS, loaded)
                 return
             except Exception as e:
                 log.error("Failed to load config, using defaults", error=str(e))
-        self._data = dict(DEFAULTS)
+        self._data = self._deep_merge(DEFAULTS, {})
         self.save()
 
     def save(self) -> None:
         try:
-            with open(_CONFIG_FILE, "w") as f:
+            with open(self._config_file, "w") as f:
                 yaml.safe_dump(self._data, f, default_flow_style=False, indent=2)
-            _CONFIG_FILE.chmod(0o600)
+            self._config_file.chmod(0o600)
         except Exception as e:
             log.error("Failed to save config", error=str(e))
 
@@ -229,15 +239,15 @@ class Config:
 
     @property
     def config_dir(self) -> Path:
-        return _CONFIG_DIR
+        return self._config_dir
 
     @property
     def data_dir(self) -> Path:
-        return _DATA_DIR
+        return self._data_dir
 
     @property
     def db_path(self) -> str:
-        return self.get("database", "path", default=str(_DATA_DIR / "meli.db"))
+        return self.get("database", "path", default=str(self._data_dir / "meli.db"))
 
 
 # Singleton

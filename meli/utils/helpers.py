@@ -38,9 +38,37 @@ def is_valid_ip(ip: str) -> bool:
         return False
 
 
+# Explicit list of private/reserved networks (RFC 1918, loopback, link-local,
+# ULA).  We intentionally do NOT use ipaddress.is_private here because its
+# definition was expanded in Python 3.11 to include documentation/test ranges
+# such as 192.0.2.0/24, 198.51.100.0/24, and 203.0.113.0/24 (RFC 5737), which
+# are not routable but are not "private" in the colloquial sense used elsewhere
+# in this codebase (i.e., "not a real public Internet address").
+_PRIVATE_NETWORKS: list[ipaddress.IPv4Network | ipaddress.IPv6Network] = [
+    # IPv4
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("127.0.0.0/8"),
+    ipaddress.ip_network("169.254.0.0/16"),  # link-local
+    ipaddress.ip_network("0.0.0.0/8"),
+    # IPv6
+    ipaddress.ip_network("::1/128"),          # loopback
+    ipaddress.ip_network("fc00::/7"),          # ULA
+    ipaddress.ip_network("fe80::/10"),         # link-local
+]
+
+
 def is_private_ip(ip: str) -> bool:
+    """Return True if *ip* is a private/loopback/link-local address.
+
+    Only RFC 1918, loopback, and link-local ranges are considered private.
+    Documentation/test ranges (RFC 5737, RFC 3849) are treated as public so
+    that behaviour is consistent across Python versions.
+    """
     try:
-        return ipaddress.ip_address(ip).is_private
+        addr = ipaddress.ip_address(ip)
+        return any(addr in net for net in _PRIVATE_NETWORKS)
     except ValueError:
         return False
 
@@ -72,7 +100,7 @@ def generate_token(length: int = 32) -> str:
 def country_flag_emoji(country_code: str) -> str:
     """Convert ISO-3166-1 alpha-2 code to flag emoji."""
     if not country_code or len(country_code) != 2:
-        return "🏳"
+        return "\U0001f3f3"
     offset = 127397
     return "".join(chr(ord(c) + offset) for c in country_code.upper())
 
