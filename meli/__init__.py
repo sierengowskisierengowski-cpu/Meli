@@ -4,7 +4,7 @@ Author: Joseph Sierengowski
 License: MIT
 """
 
-__version__ = "2.7.7"
+__version__ = "2.7.8"
 __author__ = "Joseph Sierengowski"
 __license__ = "MIT"
 __description__ = "Real-time threat intelligence dashboard for honeypot infrastructure"
