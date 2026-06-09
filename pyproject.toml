@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "meli"
-version = "2.8.2"
+version = "2.9.1"
 description = "Honeypot Command Center — Real-time threat intelligence dashboard for honeypot infrastructure"
 authors = [{ name = "Joseph Sierengowski" }]
 license = { text = "MIT" }
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 keywords = ["honeypot", "security", "threat-intelligence", "gtk4", "monitoring"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -22,6 +22,7 @@ classifiers = [
     "Topic :: System :: Monitoring",
 ]
 dependencies = [
+    "argon2-cffi>=23.1.0",
     "PyGObject>=3.46.0",
     "paho-mqtt>=2.0.0",
     "requests>=2.31.0",
@@ -55,9 +56,9 @@ meli = "meli.__main__:main"
 meli-web = "meli.webapi.__main__:main"
 
 [project.urls]
-Homepage = "https://github.com/sierengowski/meli"
-Repository = "https://github.com/sierengowski/meli"
-Issues = "https://github.com/sierengowski/meli/issues"
+Homepage = "https://github.com/sierengowskisierengowski-cpu/Meli"
+Repository = "https://github.com/sierengowskisierengowski-cpu/Meli"
+Issues = "https://github.com/sierengowskisierengowski-cpu/Meli/issues"
 
 [tool.setuptools]
 include-package-data = true

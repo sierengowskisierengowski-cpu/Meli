@@ -2,6 +2,85 @@
 
 All notable changes to Meli are documented here.
 
+## [2.9.1] — 2026-06-09
+
+### Fixed
+- **Attackers:** collision-free attacker IDs — generate a stable UUID from source IP rather than relying on DB insertion order, preventing ID collisions when multiple ingestion sources report the same IP
+- **Dashboard:** surface database state on load — KPI tiles and the amphora now reflect the current DB totals immediately on startup rather than waiting for the first live event
+
+---
+
+## [2.9.0] — 2026-06-05
+
+### Added
+- **React Web Command Center** — full second frontend in `webui/` (React + Vite + TypeScript + shadcn/ui)
+  - 17 dashboard pages: live KPI tiles, severity breakdown, 24h intensity chart, top-attacker leaderboard, honey-jar capacity gauge, honeypot fleet status, attackers, events, credentials, commands, payloads, sessions, services, alerts (with one-click acknowledge), reports, botnets, IP-reputation lookup, setup wizard
+  - Served by `meli-web` (FastAPI + uvicorn) at `http://127.0.0.1:17655/`
+  - REST API reads the same SQLite DB as the GTK4 app — no separate backend required
+- **`run.sh`** — one-command dev launcher: bootstraps `.venv`, builds `webui/`, launches `meli-web` and opens the browser; `--native` flag spawns the Electron shell; `--no-open` for headless servers
+- **`meli/webapi/`** — FastAPI application and `meli-web` CLI entry point
+- **Electron shell** (`electron/`) — optional borderless desktop window wrapping the web UI; installed by `install.sh --with-electron`
+
+---
+
+## [2.8.2] — 2026-05-31
+
+### Fixed
+- **npm build:** corrected `MeliShell` named export mismatch that caused `npm run build` to fail in CI and clean install environments
+
+---
+
+## [2.8.1] — 2026-05-30
+
+### Fixed
+- **React UI:** four regressions found in v2.8.0 code review — corrected TypeScript type errors, fixed broken API client base URL resolution, resolved missing Vite env variable references, and patched a React key collision in the event list
+
+---
+
+## [2.8.0] — 2026-05-29
+
+### Added
+- Initial React + Vite scaffold for the web command center (pre-release; `npm run build` required before serving)
+- `webui/package.json`, `vite.config.ts`, `tsconfig.json`, `components.json` (shadcn/ui)
+- Placeholder dashboard pages for all 17 views
+
+---
+
+## [2.7.20] — 2026-05-27
+
+### Changed
+- **Dashboard:** KPI sparkline height reduced to 52 px (dense, not hazy) with no vertical expand; jar glow rebuilt as a single bright AMBER halo with a constant 4-second shimmer pulse (replaces 6 stacked semi-transparent passes that were effectively invisible at runtime)
+
+---
+
+## [2.7.0–2.7.19] — 2026-05-15 to 2026-05-27
+
+### Added / Changed
+- **Cairo UI overhaul** — all dashboard panels repainted with Cairo directly; bypasses GTK4 CSS engine for chrome (gradients, glows, halos); consistent luminous honey aesthetic across every view
+- **CairoPanel widget** (`meli/ui/widgets/cairo_panel.py`) — reusable Cairo-painted panel with amber gradient background, outer glow, gold inner halo, and warm border; wired into `dashboard._panel()` helper
+- **HivePrefsGroup** — Cairo hive-panel chrome applied to all settings-style views (Settings, Setup Wizard, Alert Rules, Attackers, Botnets, IP Reputation, Payloads, Reports, Service Stats, Timeline, Live Feed)
+- **KPI sparklines** — Cairo-drawn sparklines with honey-drip top stripe and state dot; 44→72 px height iterations; cylindrical honey-jar with honeycomb hex texture; amber numbered rank badges and country chips
+- **Dashboard layout** — matches final mockup: giant honey-jar centerpiece (left, 420 px) with corner overlay stats; Severity + Top Attackers stacked right column; intensity chart + credentials + ticker below hero
+- **Setup Wizard** moved to sidebar nav list as a pill
+- **Sidebar** — M badge + amber pills + status pill; matches mockup; lands on Dashboard not Atrium by default
+- **`__gtype_name__`** added to all Cairo widgets so `do_snapshot` fires correctly in GTK4
+- Various GTK4 CSS compatibility fixes (removed `!important`, split border shorthand with alpha, USER priority provider)
+- Bug fixes: `Event.event_data` crash (use `parsed_data` JSON column), `Credential.honeypot_service` crash (use `source_honeypots` JSON list), `HiveHeader.pack_start/add` GTK4 compat
+
+---
+
+## [2.6.0–2.6.2] — 2026-05-08 to 2026-05-12
+
+### Added
+- **Lock screen** — full-screen honeycomb overlay with gooey vertical honey drips; displayed on Ctrl+L or auto-lock timeout
+- **Splash screen** — redesigned: fullscreen honey splat → drips → MELI logo; replaced earlier minimal splash
+- Multi-resolution PNG icons added for desktop integration
+
+### Fixed
+- `install.sh` now correctly pip-installs the package inside the venv (Phase 3)
+
+---
+
 ## [2.2.2] — 2026-05-22
 
 ### Fixed

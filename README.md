@@ -2,10 +2,10 @@
 
 > *Meli* is Greek for "honey" — a fitting name for a command center that watches your traps.
 
-**v2.9.0** — Meli now ships **two complete frontends** against the same Python ingest pipeline:
+**v2.9.1** — Meli ships **two complete frontends** against the same Python ingest pipeline:
 
-- 🐝 **Web Command Center** (new in 2.9) — a React + Vite single-page app in `webui/`, served by `meli-web` (FastAPI + uvicorn) at `http://127.0.0.1:17655/`. 17 dashboards: live KPI tiles, severity breakdown, 24-hour attack-intensity chart, top-attacker leaderboard, honey-jar capacity gauge, honeypot fleet status, attackers / events / credentials / commands / payloads / sessions / services / alerts (with one-click acknowledge) / reports / botnets / IP-reputation lookup / setup wizard.
-- 🖥️ **GTK4 desktop app** (the original) — full native Linux experience with the Cairo amphora, Labyrinth tarpit controls, and 16 windowed views.
+- 🐝 **Web Command Center** — a React + Vite single-page app in `webui/`, served by `meli-web` (FastAPI + uvicorn) at `http://127.0.0.1:17655/`. 17 dashboards: live KPI tiles, severity breakdown, 24-hour attack-intensity chart, top-attacker leaderboard, honey-jar capacity gauge, honeypot fleet status, attackers / events / credentials / commands / payloads / sessions / services / alerts (with one-click acknowledge) / reports / botnets / IP-reputation lookup / setup wizard.
+- 🖥️ **GTK4 desktop app** — full native Linux experience with the Cairo amphora, Labyrinth tarpit controls, and 16 windowed views.
 
 Both frontends read the same SQLite database written by the Meli ingest daemon, so events captured by Cowrie / Dionaea / Conpot / Heralding / Endlessh / Labyrinth show up everywhere automatically.
 
@@ -18,10 +18,6 @@ Both frontends read the same SQLite database written by the Meli ingest daemon, 
 This bootstraps a `.venv`, installs Python deps, runs `npm install && npm run build` in `webui/`, then launches `meli-web` on port `17655` and opens your browser. Add `--native` for the borderless Electron window, or `--no-open` for a headless server.
 
 For a full system install (systemd user units, desktop entry, `/opt/meli`), use `./install.sh` instead — Phase 4b builds the React webui and Phase 4c (`--with-electron`) installs the Electron shell.
-
----
-
-**v2.2.2** — A native **GTK4 + libadwaita** Linux desktop application for real-time honeypot monitoring, threat intelligence, and active deception. Built for security researchers, SOC analysts, homelab operators, and anyone running Cowrie, Heralding, Dionaea, or their own custom honeypot infrastructure.
 
 **Author:** Joseph Sierengowski  
 **License:** MIT  
@@ -218,14 +214,17 @@ See [Roadmap](#roadmap) for planned ingest methods not yet implemented.
          │  (SQLAlchemy)    │  │  + 6 Notifiers   │
          └──────────┬──────┘  └──────────────────┘
                     │
-         ┌──────────▼──────┐
-         │    GTK4 UI       │  Main thread only
-         │   (16 views)     │  Reads DB, subscribes MQTT
-         │  [opt: Atrium]   │  Fullscreen kiosk on demand
-         └─────────────────┘
+         ┌──────────┴───────────────────┐
+         │                              │
+┌────────▼────────┐           ┌─────────▼──────────────┐
+│    GTK4 UI       │           │  React Web UI           │
+│   (16 views)     │           │  (17 dashboards)        │
+│  [opt: Atrium]   │           │  FastAPI + uvicorn      │
+│  Native desktop  │           │  http://127.0.0.1:17655 │
+└─────────────────┘           └────────────────────────┘
 ```
 
-The ingest daemon and GUI are independent processes. The GUI subscribes to `meli/events/processed` for the live feed and reads the database for all other views. Capture and classification continue when the GUI window is closed.
+The ingest daemon and both UIs are independent processes. The GTK4 app subscribes to `meli/events/processed` for the live feed and reads the database for all other views. The React web UI is served by `meli-web` (FastAPI + uvicorn) and also reads exclusively from the same SQLite database. Capture and classification continue when both UI windows are closed.
 
 ---
 
@@ -354,12 +353,25 @@ Meli/
 │   │   ├── blocklist.py         # Firewall-rule export
 │   │   └── digest.py            # Daily Markdown + PDF digest service
 │   ├── reports/                 # PDF/MD/JSON/CSV generation
+│   ├── webapi/                  # FastAPI server for the React web UI
+│   │   ├── __main__.py          # CLI entry point (meli-web)
+│   │   └── server.py            # FastAPI app — REST API + static file serving
 │   └── ui/                      # GTK4 application UI
 │       ├── app.py               # Window, sidebar, stack navigation
 │       ├── atrium.py            # Fullscreen kiosk display (lazily imported)
 │       ├── dialogs/             # Change-password and setup wizard dialogs
 │       ├── widgets.py           # HoneyPotWidget (Cairo amphora) and shared widgets
 │       └── views/               # 16 views (see table above)
+├── webui/                       # React + Vite web command center
+│   ├── src/                     # TypeScript source
+│   │   ├── pages/               # 17 dashboard pages
+│   │   ├── components/          # Reusable UI components
+│   │   ├── api/                 # API client (fetch wrappers)
+│   │   └── hooks/               # React hooks
+│   ├── package.json
+│   └── vite.config.ts
+├── electron/                    # Optional Electron shell for the web UI
+│   └── main.js
 ├── tests/                       # pytest suite
 ├── docs/                        # Documentation
 ├── assets/
@@ -367,6 +379,7 @@ Meli/
 │   └── sounds/                  # Alert sound files
 ├── install.sh                   # 9-phase installer (Arch / Ubuntu / Fedora)
 ├── uninstall.sh                 # Uninstaller (preserves user data)
+├── run.sh                       # One-command dev launcher (no /opt install required)
 ├── pyproject.toml               # Build configuration
 ├── requirements.txt             # Python dependencies
 ├── meli.desktop                 # XDG desktop entry
