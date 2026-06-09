@@ -10,45 +10,45 @@ GPU with CUDA required for practical training performance.
 
 ## Step 1: Generate Base Dataset
 
-    python generate_training_data.py
+    python training/generate_training_data.py
 
-Produces jett_training_data.json with baseline attack/benign scenarios.
+Produces data/jett_training_data.json with baseline attack/benign scenarios.
 
 ## Step 2: Download & Convert Intelligence
 
-    python download_intelligence.py
-    python convert_intelligence.py
-    python convert_knowledge_base.py
+    python scripts/download_intelligence.py
+    python scripts/convert_intelligence.py
+    python scripts/convert_knowledge_base.py
 
 Downloads red/blue team repos, MITRE ATT&CK, CVEs, GTFOBins, LOLBAS, Sigma rules, YARA rules, Hak5 payloads and converts them to training pairs.
 
 ## Step 3: Consolidate Dataset
 
-    python jett_extended_training.py
+    python training/jett_extended_training.py
 
 Merges all sources into jett_training_data_full.json.
 
 ## Step 4: Inject Evasion Mutations
 
-    python mutate_matrix.py
+    python training/mutate_matrix.py
 
 Adds polymorphic evasion variants to improve detection of bypass techniques.
 
 ## Step 5: Balance ALLOW/QUARANTINE
 
-    python generate_allow_dataset.py
+    python training/generate_allow_dataset.py
 
 Generates balanced ALLOW training pairs for trusted GowskiNet processes to reduce false positives.
 
 ## Step 6: Final Merge
 
-    python merge_final.py
+    python training/merge_final.py
 
 Produces the final training dataset.
 
 ## Step 7: Train
 
-    python train_core_weights.py
+    python training/train_core_weights.py
 
 Trains IBM Granite 3.3 2B with LoRA adapters via SFTTrainer. Recommended: RunPod A40 GPU, 120-180 steps.
 
