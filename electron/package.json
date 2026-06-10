@@ -1,0 +1,13 @@
+{
+  "name": "meli-electron-shell",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Minimal borderless Electron wrapper for the Meli web UI. Optional — install.sh only sets this up when --with-electron is passed.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^33.0.0"
+  }
+}

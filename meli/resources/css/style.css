@@ -1,0 +1,918 @@
+/* ─────────────────────────────────────────────────────────────────────────
+ * Meli — Honey Trap theme
+ * Warm dark hive base, raw-honey accents, comb-cell motif.
+ * Loaded by app.py at startup; inline fallback lives in _load_css().
+ * ──────────────────────────────────────────────────────────────────────── */
+
+@define-color meli_hive_black     #100a04;
+@define-color meli_comb_dark      #1a1410;
+@define-color meli_comb_panel     #221a12;
+@define-color meli_raw_honey      #d4a017;
+@define-color meli_amber_glow     #f59e0b;
+@define-color meli_pale_comb      #fef3c7;
+@define-color meli_beeswax        #fde68a;
+@define-color meli_sting_red      #dc2626;
+@define-color meli_warm_border    #3a2818;
+
+/* ── App-wide warm dark base ─────────────────────────────────────────── */
+
+window.meli-window {
+    background-color: @meli_hive_black;
+    color: @meli_pale_comb;
+    /* v2.3.0: subtle honeycomb pattern at very low opacity over the whole
+     * window — same SVG used on the splash, but tiled across the entire
+     * surface so the "hive" motif reads at any zoom level. */
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='56' height='48' viewBox='0 0 56 48'><g fill='none' stroke='%23d4a017' stroke-opacity='0.10' stroke-width='1'><polygon points='14,0 42,0 56,24 42,48 14,48 0,24'/></g></svg>");
+    background-repeat: repeat;
+}
+
+window.meli-window > * { color: @meli_pale_comb; }
+
+/* ── Sidebar (left nav) ──────────────────────────────────────────────── */
+
+.meli-sidebar,
+.hive-sidebar {
+    background-color: alpha(@meli_comb_dark, 0.98);
+    border-right: 1px solid alpha(@meli_raw_honey, 0.22);
+    box-shadow: inset -1px 0 0 alpha(@meli_raw_honey, 0.14);
+}
+
+.meli-sidebar row:hover {
+    background-color: alpha(@meli_amber_glow, 0.10);
+}
+
+.meli-sidebar row:selected {
+    background-color: alpha(@meli_raw_honey, 0.18);
+    color: @meli_beeswax;
+    box-shadow: inset 3px 0 0 @meli_raw_honey;
+}
+
+/* ── Hive sidebar brand block ──────────────────────────────────── */
+.hive-brand-badge {
+    background-image: linear-gradient(135deg, #f0b829, #ff8c1a);
+    color: #1a0f04;
+    font-weight: 900;
+    font-size: 20px;
+    border-radius: 9px;
+    box-shadow: 0 0 16px alpha(@meli_raw_honey, 0.65);
+    min-width: 36px;
+    min-height: 36px;
+}
+.hive-brand-name {
+    color: @meli_pale_comb;
+    font-weight: 900;
+    font-size: 15px;
+    letter-spacing: 0.5px;
+}
+.hive-brand-tag {
+    color: @meli_raw_honey;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 2.6px;
+    opacity: 0.95;
+}
+
+/* ── Hive nav pills (mockup amber-on-black look) ───────────────── */
+.hive-nav-pill {
+    background: transparent;
+    border: none;
+    border-left: 2px solid transparent;
+    border-radius: 6px;
+    padding: 0;
+    min-height: 30px;
+    color: #c8b89e;
+    transition: background-color 120ms ease, color 120ms ease;
+}
+.hive-nav-pill:hover {
+    background-color: alpha(@meli_raw_honey, 0.10);
+    color: @meli_pale_comb;
+}
+.hive-nav-pill:checked,
+.hive-nav-pill:active {
+    background-image: linear-gradient(90deg,
+        alpha(@meli_raw_honey, 0.28) 0%,
+        alpha(@meli_raw_honey, 0.04) 100%);
+    border-left: 2px solid @meli_raw_honey;
+    color: @meli_pale_comb;
+    font-weight: 700;
+    box-shadow: inset 0 0 16px alpha(@meli_raw_honey, 0.14);
+}
+.hive-nav-glyph {
+    color: alpha(@meli_raw_honey, 0.75);
+    font-size: 13px;
+    font-family: monospace;
+}
+.hive-nav-pill:checked .hive-nav-glyph {
+    color: @meli_raw_honey;
+}
+.hive-nav-label {
+    font-size: 12px;
+}
+
+/* ── Status pill + sidebar buttons ─────────────────────────────── */
+.hive-status-pill {
+    background-color: alpha(@meli_raw_honey, 0.07);
+    border: 1px dashed alpha(@meli_raw_honey, 0.40);
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: @meli_raw_honey;
+    font-size: 10px;
+}
+.hive-status-dot {
+    color: #43e07a;
+    font-size: 8px;
+}
+.hive-status-text {
+    color: @meli_raw_honey;
+    font-size: 10px;
+}
+.hive-atrium-btn {
+    background-image: linear-gradient(135deg, #f0b829, #ff8c1a);
+    color: #1a0f04;
+    font-weight: 800;
+    border: none;
+    border-radius: 6px;
+    box-shadow: 0 0 12px alpha(@meli_raw_honey, 0.45);
+}
+.hive-atrium-btn:hover {
+    box-shadow: 0 0 18px alpha(@meli_raw_honey, 0.70);
+}
+.hive-lock-btn {
+    background-color: alpha(#ffffff, 0.04);
+    border: 1px solid alpha(@meli_raw_honey, 0.25);
+    color: @meli_pale_comb;
+    border-radius: 6px;
+}
+.hive-lock-btn:hover {
+    background-color: alpha(@meli_raw_honey, 0.12);
+}
+
+/* ── Header bar ──────────────────────────────────────────────────────── */
+
+.meli-header {
+    background-color: alpha(@meli_comb_dark, 0.98);
+    border-bottom: 1px solid alpha(@meli_warm_border, 0.8);
+    color: @meli_pale_comb;
+}
+
+.meli-header label { color: @meli_pale_comb; }
+
+/* ── Cards / panels ──────────────────────────────────────────────────── */
+
+.stat-card {
+    border-radius: 14px;
+    padding: 18px;
+    background-color: alpha(@meli_comb_panel, 0.92);
+    border: 1px solid alpha(@meli_warm_border, 0.7);
+    /* faint inner honey glow */
+    box-shadow:
+        inset 0 1px 0 alpha(@meli_raw_honey, 0.08),
+        0 2px 4px alpha(black, 0.4);
+}
+
+.stat-card:hover {
+    border-color: alpha(@meli_raw_honey, 0.5);
+    box-shadow:
+        inset 0 1px 0 alpha(@meli_raw_honey, 0.15),
+        0 4px 8px alpha(black, 0.5);
+}
+
+/* Big stat number — warm honey gradient feel */
+.stat-card .title-1 {
+    color: @meli_raw_honey;
+    font-weight: 700;
+}
+
+/* ── Severity scale, re-tuned to honey palette ──────────────────────── */
+
+.severity-info     { color: #c2b8a3; }                /* faded comb */
+.severity-low      { color: @meli_beeswax; }          /* pale honey */
+.severity-medium   { color: @meli_raw_honey; }        /* raw honey */
+.severity-high     { color: #ea7f1c; }                /* burnt orange-amber */
+.severity-critical { color: @meli_sting_red; font-weight: bold; }
+
+/* ── Type utilities ──────────────────────────────────────────────────── */
+
+.monospace {
+    font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+}
+
+.amber-accent { color: @meli_amber_glow; }
+.honey-accent { color: @meli_raw_honey; }
+.beeswax-accent { color: @meli_beeswax; }
+
+/* ── Event rows (live feed, recent activity) ────────────────────────── */
+
+.event-row {
+    border-radius: 6px;
+    padding: 4px 8px;
+    transition: background-color 180ms ease, box-shadow 180ms ease;
+}
+
+.event-row:hover {
+    background-color: alpha(@meli_raw_honey, 0.08);
+    box-shadow: inset 0 0 0 1px alpha(@meli_raw_honey, 0.20);
+}
+
+/* Glisten — brief honey sheen when a new attacker row is added.
+ * Apply class `event-glisten` then remove after 700ms. */
+@keyframes glisten {
+    0%   { background-color: alpha(@meli_raw_honey, 0.00); }
+    30%  { background-color: alpha(@meli_raw_honey, 0.28); }
+    100% { background-color: alpha(@meli_raw_honey, 0.00); }
+}
+.event-glisten { animation: glisten 700ms ease-out; }
+
+/* ── Buttons ─────────────────────────────────────────────────────────── */
+
+button.suggested-action {
+    background-color: @meli_raw_honey;
+    color: @meli_hive_black;
+    font-weight: 600;
+    border-radius: 8px;
+}
+
+button.suggested-action:hover {
+    background-color: @meli_amber_glow;
+    box-shadow: 0 0 8px alpha(@meli_amber_glow, 0.4);
+}
+
+button.destructive-action {
+    background-color: @meli_sting_red;
+    color: white;
+    border-radius: 8px;
+}
+
+/* ── State-coloured window border (port of GodsApp pattern) ─────────── */
+
+window.state-idle {
+    box-shadow: inset 0 0 0 1px alpha(@meli_warm_border, 0.6);
+}
+
+@keyframes ingest-pulse {
+    0%   { box-shadow: inset 0 0 0 1px alpha(@meli_raw_honey, 0.30); }
+    50%  { box-shadow: inset 0 0 0 2px alpha(@meli_amber_glow, 0.70); }
+    100% { box-shadow: inset 0 0 0 1px alpha(@meli_raw_honey, 0.30); }
+}
+window.state-ingesting { animation: ingest-pulse 1.8s ease-in-out infinite; }
+
+@keyframes alert-flash {
+    0%   { box-shadow: inset 0 0 0 1px alpha(@meli_sting_red, 0.40); }
+    50%  { box-shadow: inset 0 0 0 3px alpha(@meli_sting_red, 0.95); }
+    100% { box-shadow: inset 0 0 0 1px alpha(@meli_sting_red, 0.40); }
+}
+window.state-alert { animation: alert-flash 800ms ease-in-out 3; }
+
+/* ── Lock screen / splash backdrop ───────────────────────────────────── */
+
+.meli-splash {
+    background-color: @meli_hive_black;
+    /* honeycomb pattern at very low opacity, repeating hex grid via SVG bg */
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='56' height='48' viewBox='0 0 56 48'><g fill='none' stroke='%23d4a017' stroke-opacity='0.06' stroke-width='1'><polygon points='14,0 42,0 56,24 42,48 14,48 0,24'/></g></svg>");
+    background-repeat: repeat;
+}
+
+.meli-logo-label {
+    color: @meli_raw_honey;
+    font-weight: 700;
+    letter-spacing: 4px;
+}
+
+/* ── Pulsing honey-drop logo glow ────────────────────────────────────── */
+
+@keyframes honey-pulse {
+    0%   { opacity: 0.85; }
+    50%  { opacity: 1.00; }
+    100% { opacity: 0.85; }
+}
+.meli-logo-pulse { animation: honey-pulse 3s ease-in-out infinite; }
+
+/* ── Empty states ────────────────────────────────────────────────────── */
+
+.meli-empty {
+    color: alpha(@meli_pale_comb, 0.55);
+    font-style: italic;
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+ * v2.7.0 — Hive Command Center components
+ * Universal chrome shared by every view: header bar, panels, kpi tiles,
+ * ticker rows, fleet cards, top-list rank rows, severity dots.
+ * ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Hive top header bar (replaces Adw.HeaderBar in every view) ────── */
+.hive-header {
+    padding: 12px 20px;
+    background-image: linear-gradient(180deg,
+        #2a1d10 0%, #160e07 100%);
+    background-color: #1a1208;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    border-bottom-color: #3a2818;
+    box-shadow: inset 0 -1px 0 rgba(212, 160, 23, 0.18),
+                0 2px 12px rgba(0, 0, 0, 0.4);
+}
+.hive-title {
+    color: @meli_pale_comb;
+    font-weight: 800;
+    font-size: 17px;
+    letter-spacing: -0.2px;
+}
+.hive-pill {
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+}
+.hive-pill-operational, .hive-pill-online {
+    background-color: alpha(#22c55e, 0.13);
+    color: #22c55e;
+    border: 1px solid alpha(#22c55e, 0.33);
+}
+.hive-pill-live, .hive-pill-honey, .hive-pill-configured, .hive-pill-guided, .hive-pill-sniffing {
+    background-color: alpha(@meli_raw_honey, 0.13);
+    color: @meli_raw_honey;
+    border: 1px solid alpha(@meli_raw_honey, 0.33);
+}
+.hive-pill-warn {
+    background-color: alpha(@meli_amber_glow, 0.16);
+    color: @meli_amber_glow;
+    border: 1px solid alpha(@meli_amber_glow, 0.40);
+}
+.hive-pill-critical {
+    background-color: alpha(@meli_sting_red, 0.16);
+    color: @meli_sting_red;
+    border: 1px solid alpha(@meli_sting_red, 0.40);
+}
+.hive-stat-label {
+    color: @meli_raw_honey;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+}
+.hive-stat-value {
+    color: alpha(@meli_pale_comb, 0.85);
+    font-size: 11px;
+    font-feature-settings: "tnum";
+}
+.hive-avatar {
+    min-width: 30px;
+    min-height: 30px;
+    background-color: alpha(@meli_raw_honey, 0.16);
+    color: @meli_raw_honey;
+    border: 1px solid alpha(@meli_raw_honey, 0.40);
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: 11px;
+}
+
+/* ── Hive panel — luminous honey gradient, warmer top → dark bottom. */
+.hive-panel {
+    padding: 16px;
+    border-radius: 14px;
+    background-image: linear-gradient(160deg,
+        #2d1f10 0%,
+        #1f1409 55%,
+        #150d05 100%);
+    background-color: #1f1409;
+    border-width: 1px;
+    border-style: solid;
+    border-color: #4a3018;
+    box-shadow: inset 0 1px 0 rgba(254, 243, 199, 0.07),
+                inset 0 0 0 1px rgba(212, 160, 23, 0.08),
+                0 8px 30px rgba(0, 0, 0, 0.6),
+                0 0 24px rgba(212, 160, 23, 0.06);
+}
+.hive-section-bar {
+    min-width: 5px;
+    min-height: 18px;
+    background-image: linear-gradient(180deg, @meli_raw_honey, @meli_amber_glow);
+    border-radius: 2px;
+}
+.hive-section-title {
+    color: @meli_pale_comb;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 2.5px;
+}
+.hive-section-accent {
+    padding: 1px 9px;
+    border-radius: 999px;
+    background-color: alpha(@meli_raw_honey, 0.13);
+    color: @meli_raw_honey;
+    border: 1px solid alpha(@meli_raw_honey, 0.33);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+}
+
+/* ── KPI tile — honey-gradient hero card with bright amber top edge. */
+.kpi-tile {
+    padding: 14px 16px;
+    border-radius: 16px;
+    background-image: linear-gradient(160deg,
+        #3a2810 0%,
+        #251810 50%,
+        #170e06 100%);
+    background-color: #251810;
+    border-width: 3px 1px 1px 1px;
+    border-style: solid;
+    border-top-color: #f59e0b;
+    border-right-color: #4a3018;
+    border-bottom-color: #4a3018;
+    border-left-color: #4a3018;
+    box-shadow: inset 0 1px 0 rgba(254, 243, 199, 0.10),
+                inset 0 -8px 24px rgba(0, 0, 0, 0.35),
+                0 0 16px rgba(212, 160, 23, 0.18),
+                0 8px 24px rgba(0, 0, 0, 0.55);
+}
+.kpi-title {
+    color: @meli_raw_honey;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.8px;
+}
+.kpi-value {
+    font-size: 34px;
+    font-weight: 900;
+    color: @meli_pale_comb;
+    font-feature-settings: "tnum";
+}
+.kpi-critical { color: @meli_sting_red; text-shadow: 0 0 18px alpha(@meli_sting_red, 0.35); }
+.kpi-warn     { color: @meli_amber_glow; text-shadow: 0 0 18px alpha(@meli_amber_glow, 0.35); }
+.kpi-ok       { color: @meli_pale_comb; text-shadow: 0 0 18px alpha(@meli_pale_comb, 0.25); }
+.kpi-sub {
+    color: alpha(@meli_pale_comb, 0.55);
+    font-size: 10px;
+}
+
+/* ── Live ticker rows (severity-coloured left border) ──────────────── */
+.ticker-row {
+    padding: 6px 8px;
+    border-radius: 6px;
+    background-color: alpha(@meli_warm_border, 0.20);
+    border-left: 2px solid @meli_raw_honey;
+}
+.ticker-row.critical { border-left-color: @meli_sting_red; }
+.ticker-row.high     { border-left-color: #ea7f1c; }
+.ticker-row.medium   { border-left-color: @meli_raw_honey; }
+.ticker-row.low      { border-left-color: @meli_pale_comb; }
+.ticker-row.info     { border-left-color: alpha(@meli_pale_comb, 0.4); }
+.ticker-time  { color: alpha(@meli_pale_comb, 0.55); font-family: monospace; font-size: 10px; }
+.ticker-ip    { color: @meli_amber_glow; font-family: monospace; font-size: 10px; }
+.ticker-svc   {
+    color: @meli_raw_honey; font-size: 9px; font-weight: 800; padding: 1px 6px;
+    border-radius: 3px; background-color: alpha(@meli_raw_honey, 0.16);
+}
+.ticker-msg   { color: @meli_pale_comb; font-family: monospace; font-size: 10px; }
+.ticker-sev-pill {
+    font-size: 9px; font-weight: 800; padding: 1px 6px; border-radius: 3px;
+}
+.ticker-sev-critical { background-color: alpha(@meli_sting_red, 0.20); color: @meli_sting_red; }
+.ticker-sev-high     { background-color: alpha(#ea7f1c, 0.20); color: #ea7f1c; }
+.ticker-sev-medium   { background-color: alpha(@meli_raw_honey, 0.20); color: @meli_raw_honey; }
+.ticker-sev-low      { background-color: alpha(@meli_pale_comb, 0.16); color: @meli_pale_comb; }
+.ticker-sev-info     { background-color: alpha(@meli_pale_comb, 0.10); color: alpha(@meli_pale_comb, 0.7); }
+
+/* ── Honeypot fleet card ───────────────────────────────────────────── */
+.fleet-card {
+    padding: 10px;
+    border-radius: 8px;
+    background-color: alpha(@meli_warm_border, 0.22);
+    border: 1px solid alpha(@meli_warm_border, 0.65);
+}
+.fleet-name        { color: @meli_pale_comb; font-family: monospace; font-size: 11px; font-weight: 700; }
+.fleet-events      { color: @meli_raw_honey; font-size: 17px; font-weight: 900; font-feature-settings: "tnum"; }
+.fleet-events-label{ color: alpha(@meli_pale_comb, 0.55); font-size: 9px; letter-spacing: 1.2px; }
+
+/* ── Top-list rank badge ───────────────────────────────────────────── */
+.rank-badge {
+    min-width: 24px; min-height: 24px;
+    background-image: linear-gradient(135deg, @meli_raw_honey, @meli_amber_glow);
+    color: @meli_hive_black;
+    font-weight: 900; font-size: 11px;
+    border-radius: 6px;
+}
+.rank-row {
+    padding: 6px 8px;
+    border-radius: 6px;
+    background-color: alpha(@meli_warm_border, 0.20);
+    border: 1px solid alpha(@meli_warm_border, 0.50);
+}
+
+/* ── State dot (live/online indicator) ─────────────────────────────── */
+.state-dot {
+    min-width: 8px; min-height: 8px;
+    border-radius: 999px;
+    background-color: @meli_pale_comb;
+}
+.state-dot.online   { background-color: #22c55e; }
+.state-dot.warning  { background-color: @meli_amber_glow; }
+.state-dot.offline  { background-color: @meli_sting_red; }
+.state-dot.honey    { background-color: @meli_raw_honey; }
+
+/* ── Universal text-color helpers ──────────────────────────────────── */
+.text-honey { color: @meli_raw_honey; }
+.text-amber { color: @meli_amber_glow; }
+.text-pale  { color: @meli_pale_comb; }
+.text-muted { color: alpha(@meli_pale_comb, 0.55); }
+.text-sting { color: @meli_sting_red; }
+.text-good  { color: #22c55e; }
+.mono       { font-family: monospace; }
+
+/* ── Universal scrollbar restyle so every view feels hive ──────────── */
+scrollbar { background-color: transparent; }
+scrollbar slider {
+    background-color: alpha(@meli_raw_honey, 0.30);
+    border-radius: 999px; min-width: 6px; min-height: 6px;
+}
+scrollbar slider:hover { background-color: alpha(@meli_amber_glow, 0.45); }
+
+
+/* ── v2.7.1: Live Feed controls + filter pills ───────────────────── */
+button.hive-action {
+    background-image: none;
+    background-color: alpha(@meli_amber_glow, 0.10);
+    color: @meli_amber_glow;
+    border: 1px solid alpha(@meli_amber_glow, 0.45);
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-family: monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-shadow: none;
+    box-shadow: none;
+}
+button.hive-action:hover {
+    background-color: alpha(@meli_amber_glow, 0.18);
+    color: @meli_pale_comb;
+    border-color: @meli_amber_glow;
+}
+button.hive-action:checked,
+button.hive-action:active {
+    background-color: @meli_amber_glow;
+    color: #1a1208;
+    border-color: @meli_amber_glow;
+    box-shadow: 0 0 14px alpha(@meli_amber_glow, 0.55);
+}
+
+button.hive-pill-filter {
+    background-image: none;
+    background-color: transparent;
+    color: alpha(@meli_pale_comb, 0.70);
+    border: 1px solid alpha(@meli_pale_comb, 0.18);
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-family: monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-shadow: none;
+    box-shadow: none;
+    min-height: 0;
+}
+button.hive-pill-filter:hover {
+    color: @meli_pale_comb;
+    border-color: alpha(@meli_amber_glow, 0.55);
+}
+button.hive-pill-filter:checked,
+button.hive-pill-filter.active {
+    background-color: @meli_amber_glow;
+    color: #1a1208;
+    border-color: @meli_amber_glow;
+    box-shadow: 0 0 12px alpha(@meli_amber_glow, 0.55);
+}
+button.hive-pill-filter.sev-critical:checked,
+button.hive-pill-filter.sev-critical.active {
+    background-color: @meli_sting_red; color: #1a0606;
+    border-color: @meli_sting_red;
+    box-shadow: 0 0 12px alpha(@meli_sting_red, 0.55);
+}
+button.hive-pill-filter.sev-high:checked,
+button.hive-pill-filter.sev-high.active {
+    background-color: #ea7f1c; color: #1a0e06;
+    border-color: #ea7f1c;
+    box-shadow: 0 0 12px alpha(#ea7f1c, 0.55);
+}
+button.hive-pill-filter.sev-medium:checked,
+button.hive-pill-filter.sev-medium.active {
+    background-color: @meli_raw_honey; color: #1a1208;
+    border-color: @meli_raw_honey;
+    box-shadow: 0 0 12px alpha(@meli_raw_honey, 0.55);
+}
+button.hive-pill-filter.sev-low:checked,
+button.hive-pill-filter.sev-low.active {
+    background-color: @meli_beeswax; color: #1a1208;
+    border-color: @meli_beeswax;
+}
+button.hive-pill-filter.sev-info:checked,
+button.hive-pill-filter.sev-info.active {
+    background-color: alpha(@meli_pale_comb, 0.30);
+    color: @meli_pale_comb;
+    border-color: alpha(@meli_pale_comb, 0.50);
+}
+.mono { font-family: monospace; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   UNIVERSAL HIVE OVERRIDES — apply mockup amber-on-black to every
+   built-in widget so legacy views inherit the look without rewrites.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Window + content backdrop */
+window.meli-window,
+window.meli-window > * {
+    background-color: @meli_hive_black;
+}
+.meli-content-stack,
+stack.meli-content-stack > * {
+    background-color: @meli_hive_black;
+}
+
+/* Adw.PreferencesGroup → hive panel */
+preferencesgroup,
+preferencesgroup > box {
+    background-color: transparent;
+}
+preferencesgroup > box > label {
+    color: @meli_pale_comb;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+preferencesgroup > box > box.header > label.description {
+    color: alpha(@meli_pale_comb, 0.55);
+    font-size: 10px;
+    letter-spacing: 0.5px;
+}
+preferencesgroup list,
+preferencesgroup listbox {
+    background-image: linear-gradient(155deg,
+        alpha(@meli_comb_panel, 0.93) 0%,
+        alpha(@meli_comb_dark, 0.97) 100%);
+    border: 1px solid alpha(@meli_raw_honey, 0.25);
+    border-radius: 12px;
+    box-shadow: inset 0 1px 0 alpha(@meli_pale_comb, 0.04),
+                0 4px 18px rgba(0, 0, 0, 0.45);
+}
+
+/* Adw.ActionRow — comb-row look */
+row.activatable,
+row.activatable:hover,
+row.activatable:focus,
+row {
+    background-color: transparent;
+    color: @meli_pale_comb;
+}
+row > box.header > box.title > label.title {
+    color: @meli_pale_comb;
+    font-weight: 700;
+}
+row > box.header > box.title > label.subtitle {
+    color: alpha(@meli_pale_comb, 0.55);
+    font-family: monospace;
+    font-size: 11px;
+}
+row:hover {
+    background-color: alpha(@meli_raw_honey, 0.06);
+}
+row:selected {
+    background-image: linear-gradient(90deg,
+        alpha(@meli_raw_honey, 0.22) 0%,
+        alpha(@meli_raw_honey, 0.04) 100%);
+    color: @meli_pale_comb;
+    box-shadow: inset 3px 0 0 @meli_raw_honey;
+}
+listbox > row + row {
+    border-top: 1px solid alpha(@meli_raw_honey, 0.10);
+}
+
+/* Plain Gtk.ListBox + Gtk.Frame */
+frame {
+    background-image: linear-gradient(155deg,
+        alpha(@meli_comb_panel, 0.93) 0%,
+        alpha(@meli_comb_dark, 0.97) 100%);
+    border: 1px solid alpha(@meli_raw_honey, 0.22);
+    border-radius: 12px;
+    box-shadow: inset 0 1px 0 alpha(@meli_pale_comb, 0.04);
+}
+frame > border { border: none; }
+listbox {
+    background-color: transparent;
+    color: @meli_pale_comb;
+}
+
+/* Plain buttons inside views — keep readable on dark */
+button {
+    color: @meli_pale_comb;
+}
+button.flat:hover {
+    background-color: alpha(@meli_raw_honey, 0.10);
+}
+button.suggested-action,
+button.honey-accent {
+    background-image: linear-gradient(135deg, #f0b829, #ff8c1a);
+    color: #1a0f04;
+    font-weight: 800;
+    border: none;
+    box-shadow: 0 0 10px alpha(@meli_raw_honey, 0.40);
+}
+button.suggested-action:hover,
+button.honey-accent:hover {
+    box-shadow: 0 0 16px alpha(@meli_raw_honey, 0.65);
+}
+button.destructive-action {
+    background-color: alpha(@meli_sting_red, 0.20);
+    color: @meli_sting_red;
+    border: 1px solid alpha(@meli_sting_red, 0.55);
+}
+
+/* Adw.Banner — amber strip */
+banner > revealer > box {
+    background-image: linear-gradient(90deg,
+        alpha(@meli_raw_honey, 0.22),
+        alpha(@meli_raw_honey, 0.06));
+    color: @meli_pale_comb;
+    border-bottom: 1px solid alpha(@meli_raw_honey, 0.45);
+}
+
+/* Adw.StatusPage (empty states) — amber title */
+statuspage > scrolledwindow > viewport > box {
+    background-color: transparent;
+}
+statuspage label.title {
+    color: @meli_raw_honey;
+    letter-spacing: 1.2px;
+}
+statuspage label.description {
+    color: alpha(@meli_pale_comb, 0.55);
+}
+
+/* Entries + spinbuttons + dropdowns */
+entry, spinbutton, dropdown, combobox {
+    background-color: alpha(@meli_hive_black, 0.55);
+    color: @meli_pale_comb;
+    border: 1px solid alpha(@meli_raw_honey, 0.30);
+    border-radius: 6px;
+}
+entry:focus, spinbutton:focus, dropdown:focus, combobox:focus {
+    border-color: @meli_raw_honey;
+    box-shadow: 0 0 0 1px alpha(@meli_raw_honey, 0.45);
+}
+
+/* Notebooks (tabs in views like Settings) */
+notebook > header {
+    background-color: transparent;
+    border-bottom: 1px solid alpha(@meli_raw_honey, 0.22);
+}
+notebook > header tab {
+    color: alpha(@meli_pale_comb, 0.55);
+    background-color: transparent;
+    padding: 6px 14px;
+    border: none;
+}
+notebook > header tab:checked {
+    color: @meli_raw_honey;
+    box-shadow: inset 0 -2px 0 @meli_raw_honey;
+    font-weight: 700;
+}
+
+/* Adw.NavigationSplitView / sidebar split chrome */
+navigationsplitview > sidebar,
+navigationsplitview > content {
+    background-color: @meli_hive_black;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   CASCADE-WINNING OVERRIDES — v2.7.6
+   GTK4's CSS parser is NOT a browser. Two rules to remember:
+     1. !important is supported but flaky around multi-value props
+        (commas in box-shadow, alpha() in border shorthand). Drop it
+        and win via selector specificity instead.
+     2. Split `border` shorthand into border-width/style/color when
+        any component uses a function value like alpha(@var, X).
+   These selectors chain element + class so they outweigh Adwaita's
+   .card/.boxed-list defaults without ever touching !important.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Window background — near-black with very faint warm radial glow */
+window.meli-window {
+    background-image: radial-gradient(ellipse at 20% 0%,
+                          rgba(212, 160, 23, 0.10) 0%,
+                          transparent 55%),
+                      radial-gradient(ellipse at 90% 100%,
+                          rgba(234, 127, 28, 0.08) 0%,
+                          transparent 55%);
+    background-color: #0a0703;
+}
+
+/* Higher-specificity overrides — these win even when Adwaita's .card
+   wraps a hive-panel. Use only hex/rgba inside gradients (GTK4 chokes
+   on alpha(@var, X) inside linear-gradient stops on some builds). */
+window.meli-window box.hive-panel,
+window.meli-window grid.hive-panel,
+window.meli-window frame.hive-panel,
+box.hive-panel, grid.hive-panel, frame.hive-panel {
+    background-image: linear-gradient(160deg,
+        #2d1f10 0%, #1f1409 55%, #150d05 100%);
+    background-color: #1f1409;
+    border-width: 1px;
+    border-style: solid;
+    border-color: #4a3018;
+    border-radius: 14px;
+    box-shadow: inset 0 1px 0 rgba(254, 243, 199, 0.07),
+                inset 0 0 0 1px rgba(212, 160, 23, 0.10),
+                0 8px 30px rgba(0, 0, 0, 0.6),
+                0 0 24px rgba(212, 160, 23, 0.08);
+    padding: 16px;
+}
+
+window.meli-window box.kpi-tile,
+window.meli-window grid.kpi-tile,
+box.kpi-tile, grid.kpi-tile {
+    background-image: linear-gradient(160deg,
+        #3a2810 0%, #251810 50%, #170e06 100%);
+    background-color: #251810;
+    border-width: 3px 1px 1px 1px;
+    border-style: solid;
+    border-top-color: #f59e0b;
+    border-right-color: #4a3018;
+    border-bottom-color: #4a3018;
+    border-left-color: #4a3018;
+    border-radius: 16px;
+    box-shadow: inset 0 1px 0 rgba(254, 243, 199, 0.12),
+                inset 0 -8px 28px rgba(0, 0, 0, 0.40),
+                0 0 18px rgba(212, 160, 23, 0.22),
+                0 8px 24px rgba(0, 0, 0, 0.55);
+    padding: 14px 16px;
+}
+
+window.meli-window box.hive-header,
+box.hive-header {
+    background-image: linear-gradient(180deg, #2a1d10 0%, #160e07 100%);
+    background-color: #1a1208;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    border-bottom-color: #3a2818;
+    box-shadow: inset 0 -1px 0 rgba(212, 160, 23, 0.18),
+                0 2px 12px rgba(0, 0, 0, 0.5);
+    padding: 10px 18px;
+}
+
+window.meli-window box.hive-sidebar,
+window.meli-window stack.hive-sidebar,
+box.hive-sidebar, stack.hive-sidebar {
+    background-image: linear-gradient(180deg, #1a1208 0%, #0a0703 100%);
+    background-color: #160e07;
+    border-right-width: 1px;
+    border-right-style: solid;
+    border-right-color: #4a3018;
+    box-shadow: inset -1px 0 0 rgba(212, 160, 23, 0.18);
+}
+
+/* Beat libadwaita's .card / .boxed-list backdrop on PreferencesGroup. */
+window.meli-window listbox.boxed-list,
+window.meli-window list.boxed-list,
+window.meli-window box.card,
+listbox.boxed-list, list.boxed-list, box.card {
+    background-image: linear-gradient(160deg,
+        #2d1f10 0%, #1f1409 100%);
+    background-color: #1f1409;
+    border-width: 1px;
+    border-style: solid;
+    border-color: #4a3018;
+    border-radius: 12px;
+}
+
+/* Jar centerpiece corner overlays — match mockup spec */
+label.hive-corner-title {
+    color: @meli_raw_honey;
+    font-size: 9px;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+label.hive-corner-value {
+    color: @meli_pale_comb;
+    text-shadow: 0 0 14px alpha(@meli_amber_glow, 0.4);
+}
+label.hive-corner-sub {
+    color: alpha(@meli_pale_comb, 0.55);
+    font-size: 10px;
+}
+label.hive-corner-strike {
+    color: @meli_pale_comb;
+    font-size: 13px;
+    font-weight: bold;
+}
+label.hive-corner-ip {
+    color: @meli_amber_glow;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    font-size: 10px;
+}
+label.hive-corner-strikes {
+    color: @meli_pale_comb;
+    text-shadow: 0 0 14px alpha(@meli_amber_glow, 0.4);
+}

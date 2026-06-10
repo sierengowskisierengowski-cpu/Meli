@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 280" width="220" height="280">
+  <title>Meli logo — Hexagon + Drop</title>
+  <defs>
+    <linearGradient id="hd_drop" x1="0" y1="100" x2="0" y2="200" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fde68a"/>
+      <stop offset="0.4" stop-color="#f59e0b"/>
+      <stop offset="1" stop-color="#8a5d05"/>
+    </linearGradient>
+    <radialGradient id="hd_glow" cx="110" cy="150" r="130" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#d4a017" stop-opacity="0.20"/>
+      <stop offset="1" stop-color="#d4a017" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <circle cx="110" cy="150" r="130" fill="url(#hd_glow)"/>
+  <!-- Background hex grid (very subtle) -->
+  <g stroke="#d4a017" stroke-opacity="0.12" stroke-width="1" fill="none">
+    <polygon points="40,80 60,80 70,97 60,114 40,114 30,97"/>
+    <polygon points="160,80 180,80 190,97 180,114 160,114 150,97"/>
+    <polygon points="40,200 60,200 70,217 60,234 40,234 30,217"/>
+    <polygon points="160,200 180,200 190,217 180,234 160,234 150,217"/>
+  </g>
+  <!-- Main hexagon (the honey cell) -->
+  <polygon points="110,40 180,80 180,200 110,240 40,200 40,80"
+           fill="#1a1410" stroke="#d4a017" stroke-width="3"/>
+  <!-- Inner hex line (depth) -->
+  <polygon points="110,56 168,88 168,192 110,224 52,192 52,88"
+           fill="none" stroke="#d4a017" stroke-width="1" opacity="0.4"/>
+  <!-- Honey drop suspended in the center -->
+  <path d="M 110 95
+           Q 95 130 95 158
+           Q 95 188 110 188
+           Q 125 188 125 158
+           Q 125 130 110 95 Z"
+        fill="url(#hd_drop)" stroke="#d4a017" stroke-width="1.6"/>
+  <!-- Drop highlight -->
+  <ellipse cx="103" cy="135" rx="4" ry="10" fill="#fef3c7" opacity="0.55"/>
+  <ellipse cx="100" cy="155" rx="2" ry="5" fill="#fef3c7" opacity="0.40"/>
+  <!-- Tiny tail at top of drop where it hangs -->
+  <path d="M 108 88 Q 110 80 112 88 Z" fill="#d4a017"/>
+  <!-- Six corner accent dots (echoes hex vertices) -->
+  <g fill="#d4a017">
+    <circle cx="110" cy="40" r="3"/>
+    <circle cx="180" cy="80" r="3"/>
+    <circle cx="180" cy="200" r="3"/>
+    <circle cx="110" cy="240" r="3"/>
+    <circle cx="40" cy="200" r="3"/>
+    <circle cx="40" cy="80" r="3"/>
+  </g>
+</svg>
