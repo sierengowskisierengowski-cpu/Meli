@@ -1,0 +1,36 @@
+# Meli Daily Report — {{ period_start[:10] }}
+
+**Generated:** {{ generated_at[:19] }}Z | **Author:** Joseph Sierengowski
+
+---
+
+## Summary
+| Metric | Value |
+|--------|-------|
+| Total Events | {{ total_events }} |
+| Unique Attackers | {{ unique_ips }} |
+| Payloads Captured | {{ payloads_captured }} |
+| Alerts Fired | {{ alerts_fired }} |
+
+## Severity Breakdown
+{% for sev in ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"] %}
+- **{{ sev }}:** {{ severity_breakdown.get(sev, 0) }}
+{% endfor %}
+
+## Top 10 Attackers
+{% for a in top_attackers[:10] %}
+{{ loop.index }}. `{{ a.ip }}` — {{ a.count }} events
+{% endfor %}
+
+## Top Credentials
+{% for c in top_credentials[:10] %}
+- `{{ c.username }}:{{ c.password }}` — {{ c.count }} attempts
+{% endfor %}
+
+## Notable Events
+{% for e in notable_events[:10] %}
+- [{{ e.severity }}] {{ e.timestamp[:19] }} `{{ e.ip }}` ({{ e.country or "?" }}) → {{ e.service }}
+{% endfor %}
+
+---
+*Meli Honeypot Command Center*
