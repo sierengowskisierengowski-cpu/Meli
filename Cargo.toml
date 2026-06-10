@@ -1,12 +1,16 @@
 [package]
-name = "jeTT"
+name = "bifrost"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-llama-cpp-2 = { version = "0.1", features = ["cuda"] }
+llama-cpp-2 = { version = "0.1", default-features = false }
+
+[features]
+default = []
+cuda = ["llama-cpp-2/cuda"]
 
 [[bin]]
-name = "jett-daemon"
+name = "bifrost-daemon"
 path = "src/bin/daemon.rs"
 
