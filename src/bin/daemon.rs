@@ -13,8 +13,8 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 // Feeds events to jeTT AI engine for verdicts
 // ─────────────────────────────────────────────
 
-const LOG_DIR: &str = "/var/log/jett";
-const QUARANTINE_DIR: &str = "/var/jett/quarantine";
+const LOG_DIR: &str = "/var/log/bifrost";
+const QUARANTINE_DIR: &str = "/var/bifrost/quarantine";
 const VERSION: &str = "1.0.0";
 const DEFAULT_BRAND_MODEL: &str = "IBM Granite 3.3 2B";
 const DEFAULT_BRAND_HARDWARE: &str = "RTX 3060";
@@ -29,7 +29,7 @@ const TRUSTED_PATHS: &[&str] = &[
     "/usr/lib/",
     "/usr/share/",
     "/etc/systemd/",
-    "/opt/jett/",
+    "/opt/bifrost/",
 ];
 
 // Trusted process names — instant ALLOW
@@ -55,7 +55,7 @@ const TRUSTED_PROCS: &[&str] = &[
     "node",
     "pacman",
     "yay",
-    "jett",
+    "bifrost",
     "wireguard",
     "wg",
     "bash",
@@ -89,7 +89,7 @@ struct ProcessEvent {
 }
 
 #[derive(Debug)]
-struct JettVerdict {
+struct BifrostVerdict {
     event: ProcessEvent,
     verdict: String,
     reason: String,
@@ -352,22 +352,22 @@ fn validate_guard_output(
     let stderr_text = String::from_utf8_lossy(stderr).trim().to_string();
 
     if !stderr_text.is_empty() {
-        eprintln!("[!] jett --guard stderr: {}", stderr_text);
+        eprintln!("[!] bifrost --guard stderr: {}", stderr_text);
     }
 
     if !status_success {
         return Err(if stderr_text.is_empty() {
-            "jett --guard exited unsuccessfully without stderr".to_string()
+            "bifrost --guard exited unsuccessfully without stderr".to_string()
         } else {
-            format!("jett --guard failed: {}", stderr_text)
+            format!("bifrost --guard failed: {}", stderr_text)
         });
     }
 
     if stdout_text.is_empty() {
         return Err(if stderr_text.is_empty() {
-            "jett --guard returned empty stdout".to_string()
+            "bifrost --guard returned empty stdout".to_string()
         } else {
-            format!("jett --guard returned empty stdout: {}", stderr_text)
+            format!("bifrost --guard returned empty stdout: {}", stderr_text)
         });
     }
 
@@ -375,11 +375,11 @@ fn validate_guard_output(
 }
 
 fn run_guard_subprocess(event_str: &str) -> Result<String, String> {
-    let output = Command::new(get_env_or_default("JETT_BIN", "jett"))
+    let output = Command::new(get_env_or_default("BIFROST_BIN", "bifrost"))
         .arg("--guard")
         .arg(event_str)
         .output()
-        .map_err(|error| format!("failed to run jett --guard: {}", error))?;
+        .map_err(|error| format!("failed to run bifrost --guard: {}", error))?;
 
     validate_guard_output(output.status.success(), &output.stdout, &output.stderr)
 }
@@ -461,19 +461,19 @@ fn quarantine_process(event: &ProcessEvent) {
     }
 }
 
-fn log_verdict(verdict: &JettVerdict) {
+fn log_verdict(verdict: &BifrostVerdict) {
     let Some(dropped_logs) = claim_log_slot() else {
         return;
     };
 
     if dropped_logs > 0 {
         let dropped_line = format!(
-            "[{}] jeTT log rate limiter dropped {} entries in the previous second\n",
+            "[{}] Bifrost log rate limiter dropped {} entries in the previous second\n",
             get_timestamp(),
             dropped_logs
         );
         println!("{}", dropped_line.trim());
-        append_log_line(&format!("{}/jett.log", LOG_DIR), &dropped_line);
+        append_log_line(&format!("{}/bifrost.log", LOG_DIR), &dropped_line);
     }
 
     let log_line = format!(
@@ -487,7 +487,7 @@ fn log_verdict(verdict: &JettVerdict) {
     );
 
     println!("{}", log_line.trim());
-    append_log_line(&format!("{}/jett.log", LOG_DIR), &log_line);
+    append_log_line(&format!("{}/bifrost.log", LOG_DIR), &log_line);
 
     if verdict.verdict.contains("QUARANTINE") {
         let entry = format!(
@@ -505,7 +505,7 @@ fn log_verdict(verdict: &JettVerdict) {
             .args(&[
                 "--urgency=critical",
                 "--icon=security-high",
-                "🚨 jeTT QUARANTINE",
+                "🚨 Bifrost QUARANTINE",
                 &format!(
                     "PID:{} {} - {}",
                     verdict.event.pid,
@@ -554,12 +554,12 @@ fn cleanup_dead_pids(seen_pids: &Arc<Mutex<HashSet<u32>>>) {
 
 fn main() {
     println!("╔═══════════════════════════════════════════╗");
-    print_banner_line(&format!("jeTT Daemon v{}", VERSION));
+    print_banner_line(&format!("Bifrost Daemon v{}", VERSION));
     print_banner_line("GowskiNet AI Security Monitor");
     print_banner_line(&format!(
         "{} — {}",
-        get_env_or_default("JETT_BRAND_MODEL", DEFAULT_BRAND_MODEL),
-        get_env_or_default("JETT_BRAND_HARDWARE", DEFAULT_BRAND_HARDWARE),
+        get_env_or_default("BIFROST_BRAND_MODEL", DEFAULT_BRAND_MODEL),
+        get_env_or_default("BIFROST_BRAND_HARDWARE", DEFAULT_BRAND_HARDWARE),
     ));
     println!("╚═══════════════════════════════════════════╝");
     println!();
@@ -573,9 +573,9 @@ fn main() {
         }
     }
 
-    println!("[*] Loading jeTT AI model...");
+    println!("[*] Loading Bifrost AI model...");
     let model_path =
-        std::env::var("JETT_MODEL").unwrap_or_else(|_| "/opt/jett/models/jeTT-q4.gguf".to_string());
+        std::env::var("BIFROST_MODEL").unwrap_or_else(|_| "/opt/bifrost/models/bifrost-q4.gguf".to_string());
     println!("[*] Model: {}", model_path);
 
     if !Path::new(&model_path).exists() {
@@ -583,7 +583,7 @@ fn main() {
         std::process::exit(1);
     }
 
-    println!("[✅] jeTT daemon started — watching /proc for new processes");
+    println!("[✅] Bifrost daemon started — watching /proc for new processes");
     println!("[*] Logs: {}", LOG_DIR);
     println!("[*] Quarantine: {}", QUARANTINE_DIR);
     println!("[*] Press Ctrl+C to stop\n");
@@ -612,7 +612,7 @@ fn main() {
 
             match classify_event(&event) {
                 ProcessDisposition::Trusted => {
-                    let verdict = JettVerdict {
+                    let verdict = BifrostVerdict {
                         verdict: "✅ ALLOW".to_string(),
                         reason: "Trusted GowskiNet process".to_string(),
                         elapsed_ms: t.elapsed().as_millis() as u64,
@@ -636,7 +636,7 @@ fn main() {
 
                     quarantine_process(&event);
 
-                    let verdict = JettVerdict {
+                    let verdict = BifrostVerdict {
                         verdict: "🚨 QUARANTINE".to_string(),
                         reason,
                         elapsed_ms: t.elapsed().as_millis() as u64,
@@ -645,7 +645,7 @@ fn main() {
                     log_verdict(&verdict);
                 }
                 ProcessDisposition::Unknown => {
-                    let verdict = JettVerdict {
+                    let verdict = BifrostVerdict {
                         verdict: "⚠️  REVIEW".to_string(),
                         reason: format!("Unknown process: {}", event.exe_path),
                         elapsed_ms: t.elapsed().as_millis() as u64,

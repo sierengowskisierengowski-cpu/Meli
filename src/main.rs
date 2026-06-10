@@ -27,7 +27,7 @@ use llama_cpp_2::model::params::LlamaModelParams;
 use llama_cpp_2::model::{AddBos, LlamaModel, Special};
 use llama_cpp_2::sampling::LlamaSampler;
 
-const SYSTEM_CONTEXT: &str = "You are jeTT — autonomous AI Anti-Virus and Security engine. You protect this system with zero tolerance for threats. ALWAYS ALLOW: bifrost, ollama, docker, systemd, cosmic-comp, meshtastic, gps-logger, cerberus, ghost-relay, cargo build, Govee scripts, rclone, Bambu printer, Flipper Zero, jeTT itself. ALWAYS QUARANTINE: execution from /tmp/, hidden dotfiles executing, unknown processes spawned by sshd at unusual hours, unexpected outbound connections after file downloads, privilege escalation attempts, processes reading /etc/shadow, crypto miners, reverse shells.";
+const SYSTEM_CONTEXT: &str = "You are Bifrost — autonomous AI Anti-Virus and Security engine. You protect this system with zero tolerance for threats. ALWAYS ALLOW: bifrost, ollama, docker, systemd, cosmic-comp, meshtastic, gps-logger, cerberus, ghost-relay, cargo build, Govee scripts, rclone, Bambu printer, Flipper Zero, Bifrost itself. ALWAYS QUARANTINE: execution from /tmp/, hidden dotfiles executing, unknown processes spawned by sshd at unusual hours, unexpected outbound connections after file downloads, privilege escalation attempts, processes reading /etc/shadow, crypto miners, reverse shells.";
 
 fn clean_output(raw: &str) -> String {
     raw.replace("Answer:", "")
@@ -83,7 +83,7 @@ fn guard(
     event: &str,
 ) -> Result<String, Box<dyn std::error::Error>> {
     let prompt = format!(
-        "You are jeTT, the GowskiNet AI cybersecurity engine.\n\n[EVENT] {}\n\nREQUIRED TACTICAL VERDICT:\nAnalysis Matrix:\n- Pattern Recognition:",
+        "You are Bifrost, the GowskiNet AI cybersecurity engine.\n\n[EVENT] {}\n\nREQUIRED TACTICAL VERDICT:\nAnalysis Matrix:\n- Pattern Recognition:",
         event
     );
     // Pre-check: trusted paths always ALLOW before model inference
@@ -91,17 +91,6 @@ fn guard(
     let trusted_paths = [home.as_str(), "/usr/", "/etc/systemd/", "/opt/"];
     for path in &trusted_paths {
         if event.contains(path) {
-            let t = Instant::now();
-            println!("🛡️  GUARD  → ✅ ALLOW | raw: TRUSTED_PATH (0ms)");
-            return Ok("ALLOW".to_string());
-        }
-    }
-    // Pre-check: trusted paths always ALLOW before model inference
-    let home = std::env::var("HOME").unwrap_or_default();
-    let trusted_paths = [home.as_str(), "/usr/", "/etc/systemd/", "/opt/"];
-    for path in &trusted_paths {
-        if event.contains(path) {
-            let t = Instant::now();
             println!("🛡️  GUARD  → ✅ ALLOW | raw: TRUSTED_PATH (0ms)");
             return Ok("ALLOW".to_string());
         }
@@ -155,7 +144,7 @@ fn alert(
     event: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let prompt = format!(
-        "You are jeTT, the GowskiNet AI cybersecurity engine.\n\n[EVENT] {}\n\nIn one sentence explain why this is suspicious or safe:\n",
+        "You are Bifrost, the GowskiNet AI cybersecurity engine.\n\n[EVENT] {}\n\nIn one sentence explain why this is suspicious or safe:\n",
         event
     );
     let t = Instant::now();
@@ -195,7 +184,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     "Error: Flag {} requires exactly one payload string argument.",
                     f
                 );
-                eprintln!("Usage: jeTT [--guard | --alert | --query] <payload>");
+                eprintln!("Usage: bifrost [--guard | --alert | --query] <payload>");
                 std::process::exit(1);
             }
             RunMode::Cli {
@@ -203,16 +192,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 payload: args[2].clone(),
             }
         } else if f == "--help" || f == "-h" {
-            println!("jeTT — Local AI EDR Engine");
+            println!("Bifrost — Local AI EDR Engine");
             println!("Usage:");
-            println!("  jeTT                              Run the built-in demo test suite");
-            println!("  jeTT --guard <event>              Run guard evaluation on a process event");
-            println!("  jeTT --alert <event>              Explain a security threat alert in one sentence");
-            println!("  jeTT --query <question>           Execute an offline prompt query");
+            println!("  bifrost                              Run the built-in demo test suite");
+            println!("  bifrost --guard <event>              Run guard evaluation on a process event");
+            println!("  bifrost --alert <event>              Explain a security threat alert in one sentence");
+            println!("  bifrost --query <question>           Execute an offline prompt query");
             return Ok(());
         } else {
             eprintln!("Error: Unknown flag: {}", f);
-            eprintln!("Usage: jeTT [--guard | --alert | --query] <payload>");
+            eprintln!("Usage: bifrost [--guard | --alert | --query] <payload>");
             std::process::exit(1);
         }
     } else {
@@ -220,12 +209,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Determine default model path safely
-    let model_path = if let Ok(jett_model) = std::env::var("JETT_MODEL") {
-        PathBuf::from(jett_model)
+    let model_path = if let Ok(bifrost_model) = std::env::var("BIFROST_MODEL") {
+        PathBuf::from(bifrost_model)
     } else if let Ok(home) = std::env::var("HOME") {
-        PathBuf::from(format!("{}/Projects/jeTT/models/jeTT-r3-q4.gguf", home))
+        PathBuf::from(format!("{}/Projects/Bifrost/models/bifrost-q4.gguf", home))
     } else {
-        PathBuf::from("models/jeTT-r3-q4.gguf")
+        PathBuf::from("models/bifrost-q4.gguf")
     };
 
     if !model_path.exists() {
@@ -251,11 +240,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
         RunMode::Demo => {
             println!("╔═══════════════════════════════════════╗");
-            print_banner_line("jeTT — AI Anti-Virus & Security");
+            print_banner_line("Bifrost — AI Anti-Virus & Security");
             print_banner_line(&format!(
                 "{} — {}",
-                get_env_or_default("JETT_BRAND_MODEL", DEFAULT_BRAND_MODEL),
-                get_env_or_default("JETT_BRAND_HARDWARE", DEFAULT_BRAND_HARDWARE),
+                get_env_or_default("BIFROST_BRAND_MODEL", DEFAULT_BRAND_MODEL),
+                get_env_or_default("BIFROST_BRAND_HARDWARE", DEFAULT_BRAND_HARDWARE),
             ));
             print_banner_line("GowskiNet Security Lab");
             println!("╚═══════════════════════════════════════╝");
